@@ -6,53 +6,45 @@ export default function WishlistPage({ setPage }) {
   const { wishlist } = state;
 
   return (
-    <div className="fs-page">
-      <div className="fs-page-header">
-        <div className="fs-page-title">♥ WISHLIST</div>
-        <div className="fs-page-sub">
+    <div className="ff-page">
+      <div className="ff-page-header">
+        <div className="ff-page-title">♥ Wishlist</div>
+        <div className="ff-page-sub">
           {wishlist.length} saved item{wishlist.length !== 1 ? "s" : ""}
         </div>
       </div>
 
-      <div className="fs-section" style={{ paddingTop: 0 }}>
+      <div style={{ padding: "2rem 4rem" }}>
         {wishlist.length === 0 ? (
-          <div className="fs-empty-state" style={{ padding: "5rem 2rem" }}>
-            <div className="fs-empty-icon">♡</div>
-            <div className="fs-empty-title">No saved items</div>
-            <div className="fs-empty-sub">
-              Browse the shop and heart products you love
-            </div>
-            <button
-              className="fs-btn-primary"
-              style={{ marginTop: "1.5rem" }}
-              onClick={() => setPage("shop")}
-            >
-              BROWSE SHOP →
+          <div className="ff-empty-state" style={{ padding: "5rem 2rem" }}>
+            <div className="ff-empty-icon">♡</div>
+            <div className="ff-empty-title">No saved items yet</div>
+            <div className="ff-empty-sub">Browse FoxFury products and heart the ones you love</div>
+            <button className="ff-btn-yellow" style={{ marginTop: "1.5rem" }} onClick={() => setPage("shop")}>
+              BROWSE PRODUCTS →
             </button>
           </div>
         ) : (
           <>
-            <div style={{ marginBottom: "1.5rem", display: "flex", gap: ".75rem" }}>
+            <div style={{ display: "flex", gap: ".75rem", marginBottom: "1.5rem" }}>
               <button
-                className="fs-btn-outline"
-                style={{ height: 36, fontSize: ".6rem", padding: "0 1rem" }}
-                onClick={() => {
-                  wishlist.forEach((p) =>
-                    dispatch({ type: "ADD_TO_CART", payload: {
-                      id: p.id, name: p.name,
-                      price: p.price || p.ProductVariants?.[0]?.msrp || 0,
-                      image: p.image || "📦",
-                    }})
-                  );
-                }}
+                className="ff-btn-yellow"
+                onClick={() => wishlist.forEach((p) =>
+                  dispatch({ type: "ADD_TO_CART", payload: {
+                    id: p.id, name: p.name,
+                    price: p.price || p.ProductVariants?.[0]?.msrp || 0,
+                    image: p.image || "📦", sku: p.sku,
+                  }})
+                )}
               >
                 ADD ALL TO CART
               </button>
+              <button className="ff-btn-outline-sm" onClick={() => setPage("shop")}>
+                CONTINUE SHOPPING
+              </button>
             </div>
-            <div className="fs-grid">
-              {wishlist.map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
+            <div className="ff-grid">
+              {wishlist.map((p) => <ProductCard key={p.id} product={p} />)}
             </div>
           </>
         )}

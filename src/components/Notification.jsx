@@ -14,7 +14,7 @@ export default function Notification() {
   if (!notification) return null;
 
   return (
-    <div className={`fs-toast ${notification.type}`}>
+    <div className={`ff-toast ${notification.type}`}>
       <span>{notification.type === "success" ? "✓" : "✕"}</span>
       <span>{notification.msg}</span>
     </div>

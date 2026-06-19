@@ -1,150 +1,271 @@
-import { useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store/StoreContext";
 import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
+import { HERO_SLIDES, INDUSTRIES, FEATURES, TESTIMONIALS, PRODUCTS as STATIC_PRODUCTS } from "../data/foxfury";
 
-const FEATURES = [
-  { icon: "⚡", title: "Instant Delivery",  desc: "Same-day quantum shipping to all supported regions" },
-  { icon: "🔒", title: "Secure Checkout",   desc: "Military-grade encryption on all transactions" },
-  { icon: "♻️", title: "Easy Returns",      desc: "30-day no-questions-asked return policy" },
-  { icon: "🤖", title: "AI Support",         desc: "24/7 neural-network powered customer assistance" },
-];
+// ── Animated Hero ─────────────────────────────────────────────
+function HeroSection({ setPage }) {
+  const [slide, setSlide] = useState(0);
+  const timer = useRef(null);
 
-const FOOTER_COLS = [
-  { title: "NAVIGATE", links: ["Home", "Shop", "Wishlist", "Orders"] },
-  { title: "COMPANY",  links: ["About", "Careers", "Press", "Blog"] },
-  { title: "SUPPORT",  links: ["FAQ", "Shipping", "Returns", "Contact"] },
-];
+  useEffect(() => {
+    timer.current = setInterval(() => setSlide((s) => (s + 1) % HERO_SLIDES.length), 6000);
+    return () => clearInterval(timer.current);
+  }, []);
 
-export default function HomePage({ setPage }) {
+  const s = HERO_SLIDES[slide];
+
+  return (
+    <section className="ff-hero" style={{ background: s.bg }}>
+      <div className="ff-hero-grid" />
+      <div className="ff-hero-glow" />
+
+      <div className="ff-hero-content" key={slide}>
+        <div className="ff-hero-eyebrow">
+          <span className="ff-hero-eyebrow-dot" />
+          {s.eyebrow}
+        </div>
+
+        <h1 className="ff-hero-title">
+          {s.title}<br />
+          <span className="ff-hero-accent">{s.titleAccent}</span>
+        </h1>
+
+        <p className="ff-hero-sub">{s.sub}</p>
+
+        <div className="ff-hero-actions">
+          <button className="ff-btn-yellow-lg" onClick={() => setPage("shop")}>
+            {s.cta}
+          </button>
+          <button className="ff-btn-outline-lg" onClick={() => setPage("shop")}>
+            EXPLORE ALL PRODUCTS
+          </button>
+        </div>
+
+        <div className="ff-hero-stats">
+          {[s.stat1, s.stat2, s.stat3].map(([val, lbl]) => (
+            <div key={lbl} className="ff-stat">
+              <div className="ff-stat-val">{val}</div>
+              <div className="ff-stat-lbl">{lbl}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Slide dots */}
+      <div className="ff-hero-dots">
+        {HERO_SLIDES.map((_, i) => (
+          <button
+            key={i}
+            className={`ff-hero-dot ${i === slide ? "active" : ""}`}
+            onClick={() => { setSlide(i); clearInterval(timer.current); }}
+          />
+        ))}
+      </div>
+
+      {/* Scroll indicator */}
+      <div className="ff-scroll-hint">▼</div>
+    </section>
+  );
+}
+
+// ── Industry cards ────────────────────────────────────────────
+function IndustriesSection({ setPage, setActiveIndustry }) {
+  return (
+    <section className="ff-section">
+      <div className="ff-section-header">
+        <div>
+          <div className="ff-section-eyebrow">APPLICATION-SPECIFIC SOLUTIONS</div>
+          <div className="ff-section-heading">SHOP BY INDUSTRY</div>
+        </div>
+        <button className="ff-see-all" onClick={() => setPage("shop")}>VIEW ALL →</button>
+      </div>
+      <div className="ff-industry-grid">
+        {INDUSTRIES.map((ind) => (
+          <button
+            key={ind.id}
+            className="ff-industry-card"
+            onClick={() => { setActiveIndustry(ind.id); setPage("shop"); }}
+          >
+            <div className="ff-industry-icon" style={{ color: `#${ind.color}` }}>{ind.icon}</div>
+            <div className="ff-industry-label">{ind.label}</div>
+            <div className="ff-industry-desc">{ind.desc}</div>
+            <div className="ff-industry-features">
+              {ind.features.map((f) => <span key={f} className="ff-ind-tag">{f}</span>)}
+            </div>
+            <div className="ff-industry-cta">SHOP NOW →</div>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Featured products ─────────────────────────────────────────
+function FeaturedProducts({ setPage }) {
   const { state, actions } = useStore();
   const { products } = state;
 
-  // Fetch products on first render
   useEffect(() => {
-    if (!products.data.length && !products.loading) {
-      actions.fetchProducts();
-    }
+    if (!products.data.length && !products.loading) actions.fetchProducts();
   }, []);
 
-  // Show only first 4 products as "featured"
-  const featured = products.data.slice(0, 4);
+  const list = products.data.length
+    ? products.data.slice(0, 4)
+    : STATIC_PRODUCTS.filter((p) => p.badge).slice(0, 4);
 
   return (
-    <div className="fs-page">
-      {/* ── HERO ─────────────────────────────────────────────── */}
-      <section className="fs-hero">
-        <div className="fs-hero-grid" />
-        <div className="fs-hero-glow" />
-        <div className="fs-hero-content">
-          <div className="fs-hero-eyebrow">HERE AND NOW</div>
-          <h1 className="fs-hero-title">
-            THE<br />
-            <span className="accent-word">FUTURE</span>
-          </h1>
-          <p className="fs-hero-sub">
-            People who think about the future, about how to improve their lives,
-            and take action in this direction, have a plan of action.
-          </p>
-          <div className="fs-hero-actions">
-            <button className="fs-btn-primary" onClick={() => setPage("shop")}>
-              LET'S GO →
-            </button>
-            <button className="fs-btn-outline" onClick={() => setPage("shop")}>
-              EXPLORE
-            </button>
-          </div>
-          <div className="fs-hero-stats">
-            {[["4.9★", "Rating"], ["12K+", "Products"], ["98%", "Satisfaction"]].map(([v, l]) => (
-              <div key={l}>
-                <div className="fs-stat-val">{v}</div>
-                <div className="fs-stat-lbl">{l}</div>
-              </div>
-            ))}
-          </div>
+    <section className="ff-section ff-section-dark">
+      <div className="ff-section-header">
+        <div>
+          <div className="ff-section-eyebrow">INDUSTRY LEADING TECHNOLOGY</div>
+          <div className="ff-section-heading">FEATURED PRODUCTS</div>
         </div>
-      </section>
+        <button className="ff-see-all" onClick={() => setPage("shop")}>VIEW ALL →</button>
+      </div>
+      <div className="ff-grid">
+        {products.loading
+          ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
+          : list.map((p) => <ProductCard key={p.id} product={p} />)
+        }
+      </div>
+    </section>
+  );
+}
 
-      {/* ── FEATURES ─────────────────────────────────────────── */}
-      <section className="fs-features">
-        <div className="fs-features-grid">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="fs-feature">
-              <div className="fs-feature-icon">{f.icon}</div>
+// ── Nomad spotlight banner ────────────────────────────────────
+function NomadBanner({ setPage }) {
+  return (
+    <section className="ff-banner">
+      <div className="ff-banner-glow" />
+      <div className="ff-banner-content">
+        <div className="ff-banner-eyebrow">FLAGSHIP PRODUCT</div>
+        <div className="ff-banner-title">Nomad® 360 Scene Light</div>
+        <div className="ff-banner-sub">
+          The world's best self-contained portable scene light. Battery operated with built-in tripod legs.
+          Up to 8,800 lumens. Extends to 8.5 ft. Runs for 24 hours.
+        </div>
+        <div className="ff-banner-specs">
+          {["360° / Flood / Spot", "8,800 Lumens", "24hr Runtime", "8.5ft Tall", "IP67 Waterproof", "Deploy in 20 Seconds"].map((s) => (
+            <span key={s} className="ff-banner-spec">✓ {s}</span>
+          ))}
+        </div>
+        <button className="ff-btn-yellow-lg" onClick={() => setPage("shop")}>
+          SHOP NOMAD LIGHTS
+        </button>
+      </div>
+      <div className="ff-banner-visual">
+        <div className="ff-banner-emoji">💡</div>
+        <div className="ff-banner-ring ff-banner-ring-1" />
+        <div className="ff-banner-ring ff-banner-ring-2" />
+        <div className="ff-banner-ring ff-banner-ring-3" />
+      </div>
+    </section>
+  );
+}
+
+// ── Testimonials ──────────────────────────────────────────────
+function TestimonialsSection() {
+  return (
+    <section className="ff-section">
+      <div className="ff-section-header">
+        <div>
+          <div className="ff-section-eyebrow">TRUSTED WORLDWIDE</div>
+          <div className="ff-section-heading">WHAT PROFESSIONALS SAY</div>
+        </div>
+      </div>
+      <div className="ff-testimonial-grid">
+        {TESTIMONIALS.map((t, i) => (
+          <div key={i} className="ff-testimonial-card">
+            <div className="ff-testimonial-stars">★★★★★</div>
+            <blockquote className="ff-testimonial-text">"{t.text}"</blockquote>
+            <div className="ff-testimonial-footer">
+              <div className="ff-testimonial-avatar">{t.role[0]}</div>
               <div>
-                <div className="fs-feature-title">{f.title}</div>
-                <div className="fs-feature-desc">{f.desc}</div>
+                <div className="ff-testimonial-role">{t.role}</div>
+                <div className="ff-testimonial-dept">{t.dept}</div>
+                <div className="ff-testimonial-product">Product: {t.product}</div>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
-      {/* ── FEATURED PRODUCTS ────────────────────────────────── */}
-      <section className="fs-section">
-        <div className="fs-section-header">
+// ── Feature strip ─────────────────────────────────────────────
+function FeaturesStrip() {
+  return (
+    <div className="ff-features-strip">
+      {FEATURES.map((f) => (
+        <div key={f.title} className="ff-feature">
+          <div className="ff-feature-icon">{f.icon}</div>
           <div>
-            <div className="fs-section-eyebrow">CURATED FOR YOU</div>
-            <div className="fs-section-heading">FEATURED TECH</div>
+            <div className="ff-feature-title">{f.title}</div>
+            <div className="ff-feature-desc">{f.desc}</div>
           </div>
-          <span className="fs-see-all" onClick={() => setPage("shop")}>
-            VIEW ALL →
-          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Footer ────────────────────────────────────────────────────
+function Footer({ setPage }) {
+  return (
+    <footer className="ff-footer">
+      <div className="ff-footer-grid">
+        <div className="ff-footer-brand">
+          <div className="ff-footer-logo">
+            <span className="ff-logo-fox">FOX</span><span className="ff-logo-fury" style={{ color: "var(--accent)" }}>FURY</span>
+          </div>
+          <div className="ff-footer-tagline">
+            Innovative Solutions for All Your Safety Lighting Needs.
+            When seconds count and lives are on the line — FoxFury has the tools you need.
+          </div>
+          <div className="ff-footer-tagline" style={{ marginTop: ".5rem", fontSize: ".68rem" }}>
+            Designed in California · Manufactured with highest quality USA and foreign parts.
+          </div>
         </div>
 
-        {products.error ? (
-          <div style={{ textAlign: "center", padding: "3rem", color: "var(--danger)" }}>
-            <div style={{ fontSize: "2rem", marginBottom: ".75rem" }}>⚠</div>
-            <div style={{ fontFamily: "var(--fontDisplay)", fontSize: ".8rem", letterSpacing: ".1em" }}>
-              {products.error}
-            </div>
-            <button
-              className="fs-btn-outline"
-              style={{ marginTop: "1.25rem", height: 38, fontSize: ".62rem", padding: "0 1.25rem" }}
-              onClick={() => actions.fetchProducts()}
-            >
-              RETRY
-            </button>
-          </div>
-        ) : (
-          <div className="fs-grid">
-            {products.loading
-              ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
-              : featured.length > 0
-                ? featured.map((p) => <ProductCard key={p.id} product={p} />)
-                : <p style={{ color: "var(--muted)", fontSize: ".8rem" }}>No products available.</p>
-            }
-          </div>
-        )}
-      </section>
-
-      {/* ── FOOTER ───────────────────────────────────────────── */}
-      <footer className="fs-footer">
-        <div className="fs-footer-grid">
-          <div>
-            <div className="fs-footer-logo">N.JEY STORE</div>
-            <div className="fs-footer-tagline">
-              The future is not a destination — it's a direction.
-              We supply the gear for the journey.
-            </div>
-          </div>
-          {FOOTER_COLS.map((col) => (
-            <div key={col.title}>
-              <div className="fs-footer-col-title">{col.title}</div>
-              {col.links.map((l) => (
-                <a key={l} className="fs-footer-link">{l}</a>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div className="fs-footer-bottom">
-          <div className="fs-footer-copy">© 2026 N.JEY STORE — ALL RIGHTS RESERVED</div>
-          <div className="fs-footer-socials">
-            {["𝕏", "f", "in", "yt"].map((s) => (
-              <div key={s} className="fs-social">{s}</div>
+        {[
+          { title: "SHOP BY INDUSTRY", links: [["Fire / EMS / Disaster","shop"],["Law Enforcement","shop"],["Forensics","shop"],["Military","shop"],["Industrial","shop"],["Drones","shop"]] },
+          { title: "PRODUCTS",         links: [["Scene Lights","shop"],["Headlamps","shop"],["Flashlights","shop"],["Shield Lights","shop"],["Area Lights","shop"],["Drone Lights","shop"]] },
+          { title: "COMPANY",          links: [["About FoxFury","home"],["Find a Dealer","home"],["Become a Dealer","home"],["Contact Us","home"],["Warranty & RMA","home"],["Webinars","home"]] },
+        ].map((col) => (
+          <div key={col.title}>
+            <div className="ff-footer-col-title">{col.title}</div>
+            {col.links.map(([label, pg]) => (
+              <button key={label} className="ff-footer-link" onClick={() => setPage(pg)}>{label}</button>
             ))}
           </div>
+        ))}
+      </div>
+
+      <div className="ff-footer-bottom">
+        <div className="ff-footer-copy">© 2026 FoxFury Lighting Solutions · All Rights Reserved · Designed in California</div>
+        <div className="ff-footer-socials">
+          {["𝕏", "f", "in", "yt", "ig"].map((s) => (
+            <div key={s} className="ff-social">{s}</div>
+          ))}
         </div>
-      </footer>
+      </div>
+    </footer>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────
+export default function HomePage({ setPage, setActiveIndustry }) {
+  return (
+    <div className="ff-page">
+      <HeroSection setPage={setPage} />
+      <FeaturesStrip />
+      <IndustriesSection setPage={setPage} setActiveIndustry={setActiveIndustry || (() => {})} />
+      <FeaturedProducts setPage={setPage} />
+      <NomadBanner setPage={setPage} />
+      <TestimonialsSection />
+      <Footer setPage={setPage} />
     </div>
   );
 }

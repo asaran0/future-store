@@ -1,6 +1,6 @@
-# N.JEY FUTURE STORE v2.0
+# FoxFury Lighting Solutions — Store v4
 
-Enterprise React e-commerce with full backend API integration.
+Modern React e-commerce redesign of foxfury.com with full backend API integration and admin panel.
 
 ---
 
@@ -11,177 +11,95 @@ npm install
 npm start          # http://localhost:3001
 ```
 
-> Make sure your backend is running at `http://localhost:3000`
+> Backend API must be running at `http://localhost:3000`
+
+---
+
+## What's New in v4 (FoxFury Rebrand)
+
+### Brand & Content
+- **FoxFury branding** — logo, colors (yellow `#f5c518` accent), typography (Rajdhani display font)
+- **Announcement bar** — "Free Shipping On Orders Over $99" pinned above nav
+- **Navigation** — HOME | SHOP BY INDUSTRY ▾ | PRODUCTS ▾ | RESOURCES ▾ | CONTACT ▾ | FIND A DEALER ▾
+- **Dropdown menus** — hover/click dropdowns with icons and descriptions per nav item
+- **4 Themes** — Dark (default) · FoxFury Gold · Cyber · Light
+
+### Homepage
+- **3-slide animated hero** — Scene Lighting / Forensics / First Responder slides with auto-rotate
+- **Shop by Industry grid** — 7 industry cards (Fire/EMS, Law Enforcement, Forensics, Military, Industrial, Drones, Film)
+- **Nomad® spotlight banner** — product feature section with animated rings
+- **Testimonials** — 4 real FoxFury customer quotes
+- **Features strip** — Ships in 24hr · Extended Warranty · Industry Certified · Expert Support
+
+### Shop Page
+- **Industry sidebar** — filter products by all 7 industries
+- **Product type filter** — Scene Lights, Headlamps, Flashlights, Shield Lights, etc.
+- **12 FoxFury products** — Nomad® 360, Command+, Taker B30, Phlox Forensic, T.E.D.D Drone, etc.
+
+### API Integration (unchanged from v2/v3)
+| Endpoint | Used For |
+|---|---|
+| `POST /api/auth/register` | Register form |
+| `POST /api/auth/login` | Login form |
+| `GET /api/categories` | Shop category pills |
+| `GET /api/products` | Product grid (static fallback if empty) |
+| `POST /api/categories` | Admin — add category |
+| `POST /api/products` | Admin — add product |
+| `POST /api/products/:id/variants` | Admin — add variant |
+| `POST /api/products/:id/media` | Admin — add media |
 
 ---
 
 ## Project Structure
 
 ```
-future-store/
-├── public/
-│   └── index.html
-└── src/
-    ├── App.js                        ← Root — wires store + page router
-    ├── index.js                      ← ReactDOM entry
-    │
-    ├── services/
-    │   ├── api.js                    ← Base HTTP client (token attach, auto-refresh, 401 handling)
-    │   ├── authService.js            ← register(), login(), logout(), isAuthenticated()
-    │   └── productService.js         ← getProducts(), getCategories(), createProduct(), etc.
-    │
-    ├── store/
-    │   ├── reducer.js                ← All Redux-style actions + state shape (comments inline)
-    │   └── StoreContext.js           ← Context provider + useStore() + async action thunks
-    │
-    ├── theme/
-    │   └── themes.js                 ← 3 themes (dark/cyber/light) + injectStyles()
-    │
-    ├── components/
-    │   ├── GlobalStyles.jsx          ← All CSS injected via JS (zero CSS files needed)
-    │   ├── Navbar.jsx                ← Nav + theme switcher + auth buttons
-    │   ├── AuthModal.jsx             ← Login/Register modal with tabs + validation
-    │   ├── CartDrawer.jsx            ← Slide-in cart with qty controls + order placement
-    │   ├── ProductCard.jsx           ← API-shaped product card + skeleton loader
-    │   └── Notification.jsx          ← Auto-dismiss toast
-    │
-    └── pages/
-        ├── HomePage.jsx              ← Hero + features + featured products (live from API)
-        ├── ShopPage.jsx              ← Full catalog with API categories + search/sort/filter
-        ├── WishlistPage.jsx          ← Saved items + add-all-to-cart
-        └── OrdersPage.jsx            ← Order history (placed locally)
+src/
+├── App.js
+├── index.js
+├── data/
+│   └── foxfury.js          ← All FoxFury content: nav, industries, products, hero, testimonials
+├── services/
+│   ├── api.js              ← Base HTTP client (JWT attach, auto-refresh)
+│   ├── authService.js      ← register(), login(), logout()
+│   └── productService.js   ← getProducts(), getCategories(), createProduct(), etc.
+├── store/
+│   ├── reducer.js          ← Redux-style reducer with all actions
+│   └── StoreContext.js     ← Context provider + async action thunks
+├── theme/
+│   └── themes.js           ← dark / foxfury / cyber / light + injectStyles()
+├── components/
+│   ├── GlobalStyles.jsx    ← All CSS (ff- store classes + adm- admin classes)
+│   ├── Navbar.jsx          ← FoxFury nav with dropdowns + announcement bar
+│   ├── AuthModal.jsx       ← Login/Register modal
+│   ├── CartDrawer.jsx      ← Slide-in cart drawer
+│   ├── ProductCard.jsx     ← FoxFury product card + skeleton
+│   ├── Notification.jsx    ← Auto-dismiss toast
+│   └── admin/
+│       ├── AdminLayout.jsx
+│       └── AdminFields.jsx
+└── pages/
+    ├── HomePage.jsx        ← Hero · Industries · Featured · Nomad Banner · Testimonials · Footer
+    ├── ShopPage.jsx        ← Industry sidebar + product type filter + product grid
+    ├── WishlistPage.jsx
+    ├── OrdersPage.jsx
+    └── admin/
+        ├── DashboardPage.jsx
+        ├── CategoriesPage.jsx
+        ├── ProductsPage.jsx
+        └── ProductDetailPage.jsx
 ```
-
----
-
-## API Endpoints Used
-
-| # | Method | Endpoint                              | Used In              |
-|---|--------|---------------------------------------|----------------------|
-| 1 | POST   | `/api/auth/register`                  | AuthModal (Register) |
-| 2 | POST   | `/api/auth/login`                     | AuthModal (Login)    |
-| 3 | GET    | `/api/categories`                     | ShopPage filter pills|
-| 4 | GET    | `/api/products`                       | HomePage + ShopPage  |
-
-> Other endpoints (add category, add product, add variant, add media) are available
-> in `productService.js` — wire them into admin pages as needed.
-
----
-
-## Changing the API Base URL
-
-Open `src/services/api.js` and update:
-
-```js
-export const BASE_URL = "http://localhost:3000/api";
-//                       ↑ change this for staging/production
-```
-
----
-
-## Auth Flow
-
-1. User clicks **SIGN IN** or **REGISTER** in navbar → opens `AuthModal`
-2. On successful register → auto-logs in (calls `/login` internally)
-3. JWT `accessToken` + `refreshToken` stored in `sessionStorage`
-4. Every API request attaches `Authorization: Bearer <accessToken>` automatically
-5. On 401 → client silently tries to refresh via `/api/auth/refresh`
-6. On failed refresh → fires `auth:logout` event → store clears user state
-7. On page reload → token parsed from `sessionStorage`, user restored from JWT payload
 
 ---
 
 ## Switching Themes
 
-**Default** — edit `src/theme/themes.js`:
-```js
-export const ACTIVE_THEME = "dark"; // "dark" | "cyber" | "light"
-```
-
-**At runtime** — click the 3 colour dots in the navbar.
-
-**Add a custom theme** — add a new key to the `THEMES` object and a colour dot in
-`Navbar.jsx`'s `THEME_COLORS` map.
-
----
-
-## State Shape (store/reducer.js)
+Click the **4 colour dots** in the top-right navbar at runtime, or set default in `src/theme/themes.js`:
 
 ```js
-{
-  cart:       CartItem[],
-  wishlist:   Product[],
-  user:       null | { id, email, first_name, last_name, user_type },
-  products:   { data: Product[], loading: boolean, error: string|null },
-  categories: { data: Category[], loading: boolean, error: string|null },
-  ui:         { cartOpen, notification, authModal },
-  filters:    { category: "all"|<id>, sort: string, search: string },
-  orders:     Order[],
-  theme:      "dark"|"cyber"|"light"
-}
+export const ACTIVE_THEME = "dark"; // "dark" | "foxfury" | "cyber" | "light"
 ```
 
-## Dispatching Actions
+## Admin Panel
 
-```js
-import { useStore } from "./store/StoreContext";
-
-const { state, dispatch, actions } = useStore();
-
-// Async thunks (call API then dispatch)
-await actions.login({ email, password });
-await actions.register({ email, password, firstName, lastName, userType });
-actions.logout();
-await actions.fetchProducts();
-await actions.fetchCategories();
-
-// Sync dispatches
-dispatch({ type: "ADD_TO_CART",      payload: product });
-dispatch({ type: "TOGGLE_WISHLIST",  payload: product });
-dispatch({ type: "SET_FILTER",       payload: { category: "id", search: "q" } });
-dispatch({ type: "SET_THEME",        payload: "cyber" });
-dispatch({ type: "OPEN_AUTH_MODAL",  payload: "login" });   // or "register"
-dispatch({ type: "CLOSE_AUTH_MODAL" });
-dispatch({ type: "PLACE_ORDER" });
-```
-
----
-
-## Admin Panel (v3 addition)
-
-### Access
-Sign in → click the **⚙** gear icon in the navbar → Admin Panel
-
-### Pages
-
-| Page | Route key | What you can do |
-|------|-----------|-----------------|
-| Dashboard | `admin-dashboard` | Store stats, recent products, category overview |
-| Categories | `admin-categories` | Add root categories, add subcategories, view all |
-| Products | `admin-products` | Add products, search/filter, click Manage → |
-| Product Detail | `admin-product-detail` | Add variants (SKU/color/price), add media URLs |
-
-### New store actions (all wired to your backend)
-
-```js
-// Create category     → POST /api/categories
-await actions.createCategory({ name, slug, parent_id? });
-
-// Create product      → POST /api/products
-await actions.createProduct({ sku, slug, name, description, category_id, brand });
-
-// Add variant         → POST /api/products/:id/variants
-await actions.addVariant(productId, { sku, variant_name, color, msrp, cost });
-
-// Add media           → POST /api/products/:id/media
-await actions.addMedia(productId, { url, media_type, is_primary });
-```
-
-### New reducer actions
-```
-PRODUCT_CREATED      — prepends new product to products.data
-VARIANT_ADDED        — appends variant to the product in state
-MEDIA_ADDED          — appends media to the product in state
-CATEGORY_CREATED     — appends new category to categories.data
-ADMIN_SELECT_PRODUCT — sets state.admin.selectedProduct for detail view
-```
+Sign in → click **⚙** in navbar → Admin Panel  
+Sidebar: **Dashboard** · **Products** · **Categories**
