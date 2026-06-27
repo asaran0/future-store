@@ -1,105 +1,129 @@
-# FoxFury Lighting Solutions — Store v4
+# FoxFury Lighting Solutions — Store v5
 
-Modern React e-commerce redesign of foxfury.com with full backend API integration and admin panel.
+Enterprise React e-commerce fully integrated with the FoxFury backend API.
 
 ---
 
 ## Quick Start
 
 ```bash
+# 1. Start the FoxFury backend
+cd FFBackend-main
+npm install && npm start        # runs on http://localhost:3000
+
+# 2. Start the frontend (new terminal)
+cd foxfury-store
 npm install
-npm start          # http://localhost:3001
+npm start                       # runs on http://localhost:3001
 ```
 
-> Backend API must be running at `http://localhost:3000`
+---
+
+## API Endpoints Integrated
+
+### Auth  — `/api/auth/*`
+| Method | Endpoint | Used In |
+|--------|----------|---------|
+| POST | `/api/auth/register` | Register form |
+| POST | `/api/auth/login` | Login form — stores accessToken + refreshToken |
+| POST | `/api/auth/logout` | Sign out button |
+| POST | `/api/auth/refresh-token` | Auto-called on 401 to refresh session |
+
+### Products — `/api/products/*`
+| Method | Endpoint | Used In |
+|--------|----------|---------|
+| GET | `/api/products` | Home featured + Shop grid |
+| POST | `/api/products` | Admin → Add Product |
+| POST | `/api/products/:id/variants` | Admin → Product Detail → Add Variant |
+| POST | `/api/products/:id/media` | Admin → Product Detail → Add Media |
+
+### Categories — `/api/categories`
+| Method | Endpoint | Used In |
+|--------|----------|---------|
+| GET | `/api/categories` | Shop sidebar + Admin Categories |
+| POST | `/api/categories` | Admin → Add Category / Subcategory |
+
+### Industries — `/api/industry/*`
+| Method | Endpoint | Used In |
+|--------|----------|---------|
+| GET | `/api/industry` | Home industries grid + Shop sidebar |
+| POST | `/api/industry` | Admin → Industries → Create |
+| GET | `/api/industry/:id/products` | Shop → filter by industry |
+
+### Assign — `/api/assign`
+| Method | Endpoint | Used In |
+|--------|----------|---------|
+| POST | `/api/assign` | Admin → Industries → Assign product |
+
+### Inventory — `/api/inventory/*`
+| Method | Endpoint | Used In |
+|--------|----------|---------|
+| POST | `/api/inventory/update` | Admin → Inventory → Update Stock |
+| POST | `/api/inventory/reserve` | Admin → Inventory → Reserve Stock |
+| POST | `/api/inventory/ship` | Admin → Inventory → Ship Stock |
+| GET | `/api/inventory/variant/:id` | Admin → Inventory → Lookup |
+
+### Warehouses — `/api/warehouses`
+| Method | Endpoint | Used In |
+|--------|----------|---------|
+| GET | `/api/warehouses` | Admin → Inventory sidebar |
+| POST | `/api/warehouses` | Admin → Create Warehouse |
 
 ---
 
-## What's New in v4 (FoxFury Rebrand)
+## Error Handling Strategy
 
-### Brand & Content
-- **FoxFury branding** — logo, colors (yellow `#f5c518` accent), typography (Rajdhani display font)
-- **Announcement bar** — "Free Shipping On Orders Over $99" pinned above nav
-- **Navigation** — HOME | SHOP BY INDUSTRY ▾ | PRODUCTS ▾ | RESOURCES ▾ | CONTACT ▾ | FIND A DEALER ▾
-- **Dropdown menus** — hover/click dropdowns with icons and descriptions per nav item
-- **4 Themes** — Dark (default) · FoxFury Gold · Cyber · Light
-
-### Homepage
-- **3-slide animated hero** — Scene Lighting / Forensics / First Responder slides with auto-rotate
-- **Shop by Industry grid** — 7 industry cards (Fire/EMS, Law Enforcement, Forensics, Military, Industrial, Drones, Film)
-- **Nomad® spotlight banner** — product feature section with animated rings
-- **Testimonials** — 4 real FoxFury customer quotes
-- **Features strip** — Ships in 24hr · Extended Warranty · Industry Certified · Expert Support
-
-### Shop Page
-- **Industry sidebar** — filter products by all 7 industries
-- **Product type filter** — Scene Lights, Headlamps, Flashlights, Shield Lights, etc.
-- **12 FoxFury products** — Nomad® 360, Command+, Taker B30, Phlox Forensic, T.E.D.D Drone, etc.
-
-### API Integration (unchanged from v2/v3)
-| Endpoint | Used For |
-|---|---|
-| `POST /api/auth/register` | Register form |
-| `POST /api/auth/login` | Login form |
-| `GET /api/categories` | Shop category pills |
-| `GET /api/products` | Product grid (static fallback if empty) |
-| `POST /api/categories` | Admin — add category |
-| `POST /api/products` | Admin — add product |
-| `POST /api/products/:id/variants` | Admin — add variant |
-| `POST /api/products/:id/media` | Admin — add media |
+- **API down / network error** → clear error banner shown, static fallback data displayed
+- **401 Unauthorized** → auto token refresh attempted, then force logout
+- **4xx / 5xx** → exact server error message shown in UI
+- **No silent fallbacks** — every error is visible to the user with a Retry button
 
 ---
 
-## Project Structure
+## File Structure
 
 ```
 src/
-├── App.js
-├── index.js
-├── data/
-│   └── foxfury.js          ← All FoxFury content: nav, industries, products, hero, testimonials
 ├── services/
-│   ├── api.js              ← Base HTTP client (JWT attach, auto-refresh)
-│   ├── authService.js      ← register(), login(), logout()
-│   └── productService.js   ← getProducts(), getCategories(), createProduct(), etc.
+│   ├── api.js              ← Base HTTP client (token attach, auto-refresh, network errors)
+│   ├── authService.js      ← register, login, logout, refresh-token
+│   └── productService.js   ← all product, category, industry, inventory, warehouse calls
 ├── store/
-│   ├── reducer.js          ← Redux-style reducer with all actions
-│   └── StoreContext.js     ← Context provider + async action thunks
+│   ├── reducer.js          ← cart, wishlist, products, categories, industries, warehouses, ui
+│   └── StoreContext.js     ← async thunks for every API endpoint
 ├── theme/
-│   └── themes.js           ← dark / foxfury / cyber / light + injectStyles()
+│   └── themes.js           ← black (default) · dark · cyber · light
+├── data/
+│   └── foxfury.js          ← static fallback data (shown ONLY when API errors)
 ├── components/
-│   ├── GlobalStyles.jsx    ← All CSS (ff- store classes + adm- admin classes)
-│   ├── Navbar.jsx          ← FoxFury nav with dropdowns + announcement bar
-│   ├── AuthModal.jsx       ← Login/Register modal
-│   ├── CartDrawer.jsx      ← Slide-in cart drawer
-│   ├── ProductCard.jsx     ← FoxFury product card + skeleton
-│   ├── Notification.jsx    ← Auto-dismiss toast
+│   ├── GlobalStyles.jsx    ← all CSS (preview-image matched dark theme)
+│   ├── Navbar.jsx          ← announcement bar + dropdowns + 4-theme switcher
+│   ├── AuthModal.jsx       ← login / register tabs
+│   ├── CartDrawer.jsx      ← slide-in cart
+│   ├── ProductCard.jsx     ← product card + skeleton
+│   ├── Notification.jsx    ← toast
 │   └── admin/
-│       ├── AdminLayout.jsx
-│       └── AdminFields.jsx
+│       ├── AdminLayout.jsx ← sidebar nav (Dashboard·Products·Categories·Industries·Inventory)
+│       └── AdminFields.jsx ← form primitives
 └── pages/
-    ├── HomePage.jsx        ← Hero · Industries · Featured · Nomad Banner · Testimonials · Footer
-    ├── ShopPage.jsx        ← Industry sidebar + product type filter + product grid
+    ├── HomePage.jsx        ← hero (matches preview) · industries (API) · products (API) · banner · testimonials
+    ├── ShopPage.jsx        ← industry sidebar (API) · category filter (API) · product grid (API)
     ├── WishlistPage.jsx
     ├── OrdersPage.jsx
     └── admin/
-        ├── DashboardPage.jsx
-        ├── CategoriesPage.jsx
-        ├── ProductsPage.jsx
-        └── ProductDetailPage.jsx
+        ├── DashboardPage.jsx    ← stats from all APIs
+        ├── CategoriesPage.jsx   ← create category/subcategory
+        ├── ProductsPage.jsx     ← create product, list all
+        ├── ProductDetailPage.jsx← add variants + media
+        ├── IndustriesPage.jsx   ← create industry, assign products
+        └── InventoryPage.jsx    ← warehouses + stock update/reserve/ship/lookup
 ```
 
 ---
 
-## Switching Themes
+## Themes
 
-Click the **4 colour dots** in the top-right navbar at runtime, or set default in `src/theme/themes.js`:
-
+Click the 4 coloured dots in the navbar, or set default in `src/theme/themes.js`:
 ```js
-export const ACTIVE_THEME = "dark"; // "dark" | "foxfury" | "cyber" | "light"
+export const ACTIVE_THEME = "black"; // "black" | "dark" | "cyber" | "light"
 ```
-
-## Admin Panel
-
-Sign in → click **⚙** in navbar → Admin Panel  
-Sidebar: **Dashboard** · **Products** · **Categories**

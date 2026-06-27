@@ -16,11 +16,13 @@ export default function ShopPage({ activeIndustry, setActiveIndustry }) {
   const [productType, setProductType] = useState("all");
 
   useEffect(() => {
-    if (!products.data.length && !products.loading) actions.fetchProducts();
+    if (!products.data.length && !products.loading && !products.error) actions.fetchProducts();
   }, []);
 
-  // Use static data as fallback when API has no data
-  const sourceProducts = products.data.length ? products.data : STATIC_PRODUCTS;
+  // API is the source of truth. Static catalog is used ONLY when the API call
+  // actually failed (products.error set) — never just because data is empty.
+  const usingFallback = Boolean(products.error);
+  const sourceProducts = usingFallback ? STATIC_PRODUCTS : products.data;
 
   const filtered = useMemo(() => {
     let list = sourceProducts;
@@ -158,35 +160,35 @@ export default function ShopPage({ activeIndustry, setActiveIndustry }) {
             </div>
           </div>
 
-          {/* Grid */}
-          {products.error ? (
-            <div className="ff-error-state">
-              <div style={{ fontSize: "2.5rem", marginBottom: ".75rem" }}>⚠</div>
-              <div className="ff-error-title">{products.error}</div>
-              <button className="ff-btn-outline-sm" onClick={actions.fetchProducts}>↻ RETRY</button>
-            </div>
-          ) : (
-            <div className="ff-grid">
-              {products.loading
-                ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
-                : filtered.length > 0
-                  ? filtered.map((p) => <ProductCard key={p.id} product={p} />)
-                  : (
-                    <div className="ff-empty-grid">
-                      <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔭</div>
-                      <div className="ff-empty-title">No products found</div>
-                      <div className="ff-empty-sub">
-                        {filters.search ? `No results for "${filters.search}"` : "No products in this category"}
-                      </div>
-                      <button className="ff-btn-yellow" style={{ marginTop: "1.25rem" }}
-                        onClick={() => { setActiveIndustry("all"); setFilter({ search: "" }); }}>
-                        CLEAR FILTERS
-                      </button>
-                    </div>
-                  )
-              }
+          {/* API fallback notice — shown only when the live API call failed */}
+          {usingFallback && (
+            <div className="ff-fallback-notice">
+              <span>⚠ Live API unavailable — showing demo catalog.</span>
+              <button className="ff-btn-outline-sm" onClick={actions.fetchProducts}>↻ RETRY API</button>
             </div>
           )}
+
+          {/* Grid */}
+          <div className="ff-grid">
+            {products.loading
+              ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
+              : filtered.length > 0
+                ? filtered.map((p) => <ProductCard key={p.id} product={p} />)
+                : (
+                  <div className="ff-empty-grid">
+                    <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔭</div>
+                    <div className="ff-empty-title">No products found</div>
+                    <div className="ff-empty-sub">
+                      {filters.search ? `No results for "${filters.search}"` : "No products in this category"}
+                    </div>
+                    <button className="ff-btn-yellow" style={{ marginTop: "1.25rem" }}
+                      onClick={() => { setActiveIndustry("all"); setFilter({ search: "" }); }}>
+                      CLEAR FILTERS
+                    </button>
+                  </div>
+                )
+            }
+          </div>
         </div>
       </div>
     </div>

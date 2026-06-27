@@ -83,7 +83,7 @@ const CSS = `
     display: flex; align-items: center; justify-content: center;
   }
   .ff-theme-selector { display: flex; gap: 3px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
-  .ff-theme-dot { width: 14px; height: 14px; border-radius: 3px; cursor: pointer; transition: transform .2s; border: 2px solid transparent; }
+  .ff-theme-dot { width: 14px; height: 14px; border-radius: 3px; cursor: pointer; transition: transform .2s; border: 2px solid rgba(255,255,255,0.15); box-sizing: border-box; }
   .ff-theme-dot:hover { transform: scale(1.25); }
   .ff-theme-dot.active { border-color: var(--text); }
   .ff-user-chip {
@@ -260,6 +260,12 @@ const CSS = `
   .ff-filter-select:focus { border-color:var(--borderH); }
   .ff-result-count { font-family:var(--fontMono); font-size:.65rem; color:var(--muted); margin-left:auto; }
   .ff-error-state { text-align:center; padding:4rem; color:var(--danger); }
+  .ff-fallback-notice {
+    display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+    padding:.75rem 1.1rem; margin-bottom:1.5rem;
+    background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.3); border-radius:6px;
+    font-family:var(--fontMono); font-size:.72rem; color:var(--warning);
+  }
   .ff-error-title { font-family:var(--fontDisplay); font-size:.8rem; letter-spacing:.08em; margin-bottom:1rem; }
   .ff-empty-grid { grid-column:1/-1; text-align:center; padding:4rem 2rem; color:var(--muted); }
   .ff-empty-title { font-family:var(--fontDisplay); font-size:.9rem; letter-spacing:.1em; color:var(--subtle); margin-bottom:.5rem; }

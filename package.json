@@ -1,6 +1,6 @@
 {
   "name": "foxfury-store",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "private": true,
   "dependencies": {
     "react": "^18.2.0",
@@ -9,12 +9,11 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test"
+    "build": "react-scripts build"
   },
   "eslintConfig": { "extends": ["react-app"] },
   "browserslist": {
-    "production": [">0.2%", "not dead", "not op_mini all"],
-    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
+    "production": [">0.2%","not dead","not op_mini all"],
+    "development": ["last 1 chrome version","last 1 firefox version","last 1 safari version"]
   }
 }

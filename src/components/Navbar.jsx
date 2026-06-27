@@ -3,10 +3,10 @@ import { useStore } from "../store/StoreContext";
 import { NAV } from "../data/foxfury";
 
 const THEME_COLORS = {
-  dark:     { bg: "#f5c518", label: "Dark" },
-  foxfury:  { bg: "#d4a017", label: "FoxFury" },
-  cyber:    { bg: "#00ffc8", label: "Cyber" },
-  light:    { bg: "#dddddd", label: "Light" },
+  dark:  { bg: "#4f46e5", label: "Dark" },
+  black: { bg: "#000000", label: "Black" },
+  cyber: { bg: "#00ffc8", label: "Cyber" },
+  light: { bg: "#dddddd", label: "Light" },
 };
 
 function DropdownMenu({ items, onNavigate }) {

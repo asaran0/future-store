@@ -1,56 +1,41 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../../store/StoreContext";
-import {
-  AdminCard, AdminField, AdminSelect, ApiError, ApiSuccess, toSlug,
-} from "../../components/admin/AdminFields";
+import { AdminCard, AdminField, AdminSelect, ApiError, ApiSuccess, toSlug } from "../../components/admin/AdminFields";
 
-// ── Add Category form ────────────────────────────────────────
-function AddCategoryForm({ onSuccess }) {
+function AddCategoryForm() {
   const { actions } = useStore();
-  const [form,    setForm]    = useState({ name: "", slug: "" });
-  const [errors,  setErrors]  = useState({});
+  const [form, setForm]       = useState({ name: "", slug: "" });
+  const [errors, setErrors]   = useState({});
   const [loading, setLoading] = useState(false);
-  const [apiErr,  setApiErr]  = useState(null);
+  const [apiErr, setApiErr]   = useState(null);
   const [success, setSuccess] = useState(null);
 
-  const set = (field, val) => {
-    setForm((f) => {
-      const next = { ...f, [field]: val };
-      if (field === "name") next.slug = toSlug(val);
-      return next;
-    });
-    setErrors((e) => ({ ...e, [field]: null }));
+  const set = (f, v) => {
+    setForm((p) => { const n = { ...p, [f]: v }; if (f === "name") n.slug = toSlug(v); return n; });
+    setErrors((e) => ({ ...e, [f]: null }));
   };
-
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Name is required";
     if (!form.slug.trim()) e.slug = "Slug is required";
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    setErrors(e); return !Object.keys(e).length;
   };
-
   const submit = async () => {
     if (!validate()) return;
     setApiErr(null); setSuccess(null); setLoading(true);
     const res = await actions.createCategory({ name: form.name.trim(), slug: form.slug.trim() });
     setLoading(false);
-    if (res.ok) {
-      setSuccess(`Category "${res.data.name}" created!`);
-      setForm({ name: "", slug: "" });
-      onSuccess?.(res.data);
-    } else {
-      setApiErr(res.error);
-    }
+    if (res.ok) { setSuccess(`Category "${res.data.name}" created!`); setForm({ name: "", slug: "" }); }
+    else setApiErr(res.error);
   };
 
   return (
     <div className="adm-form-stack">
-      <ApiError   message={apiErr}  onDismiss={() => setApiErr(null)} />
+      <ApiError message={apiErr} onDismiss={() => setApiErr(null)} />
       <ApiSuccess message={success} />
       <div className="adm-form-row">
-        <AdminField label="Category Name" name="name" placeholder="e.g. Electronics" value={form.name} onChange={set} error={errors.name} required />
-        <AdminField label="Slug"          name="slug" placeholder="e.g. electronics"  value={form.slug} onChange={set} error={errors.slug} hint="Auto-generated from name" required />
+        <AdminField label="Category Name" name="name" placeholder="e.g. Scene Lights" value={form.name} onChange={set} error={errors.name} required />
+        <AdminField label="Slug"          name="slug" placeholder="e.g. scene-lights"  value={form.slug} onChange={set} error={errors.slug} hint="Auto-generated" required />
       </div>
       <button className="adm-btn-primary" onClick={submit} disabled={loading}>
         {loading ? <span className="fs-spin">↻</span> : "+ Create Category"}
@@ -59,139 +44,59 @@ function AddCategoryForm({ onSuccess }) {
   );
 }
 
-// ── Add Subcategory form ─────────────────────────────────────
-function AddSubcategoryForm({ categories, onSuccess }) {
+function AddSubcategoryForm({ categories }) {
   const { actions } = useStore();
-  const [form,    setForm]    = useState({ parent_id: "", name: "", slug: "" });
-  const [errors,  setErrors]  = useState({});
+  const roots = categories.filter((c) => !c.parent_id);
+  const [form, setForm]       = useState({ parent_id: "", name: "", slug: "" });
+  const [errors, setErrors]   = useState({});
   const [loading, setLoading] = useState(false);
-  const [apiErr,  setApiErr]  = useState(null);
+  const [apiErr, setApiErr]   = useState(null);
   const [success, setSuccess] = useState(null);
 
-  const rootCats = categories.filter((c) => !c.parent_id);
-
-  const set = (field, val) => {
-    setForm((f) => {
-      const next = { ...f, [field]: val };
-      if (field === "name") {
-        const parent = rootCats.find((c) => c.id === f.parent_id);
-        const prefix = parent ? parent.slug + "-" : "";
-        next.slug = prefix + toSlug(val);
+  const set = (f, v) => {
+    setForm((p) => {
+      const n = { ...p, [f]: v };
+      if (f === "name") {
+        const parent = roots.find((c) => c.id === p.parent_id);
+        n.slug = (parent ? parent.slug + "-" : "") + toSlug(v);
       }
-      return next;
+      return n;
     });
-    setErrors((e) => ({ ...e, [field]: null }));
+    setErrors((e) => ({ ...e, [f]: null }));
   };
-
   const validate = () => {
     const e = {};
-    if (!form.parent_id) e.parent_id = "Select a parent category";
-    if (!form.name.trim()) e.name = "Name is required";
-    if (!form.slug.trim()) e.slug = "Slug is required";
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    if (!form.parent_id)   e.parent_id = "Select a parent";
+    if (!form.name.trim()) e.name      = "Name is required";
+    if (!form.slug.trim()) e.slug      = "Slug is required";
+    setErrors(e); return !Object.keys(e).length;
   };
-
   const submit = async () => {
     if (!validate()) return;
     setApiErr(null); setSuccess(null); setLoading(true);
-    const res = await actions.createCategory({
-      parent_id: form.parent_id,
-      name:      form.name.trim(),
-      slug:      form.slug.trim(),
-    });
+    const res = await actions.createCategory({ parent_id: form.parent_id, name: form.name.trim(), slug: form.slug.trim() });
     setLoading(false);
-    if (res.ok) {
-      setSuccess(`Subcategory "${res.data.name}" created!`);
-      setForm({ parent_id: form.parent_id, name: "", slug: "" });
-      onSuccess?.(res.data);
-    } else {
-      setApiErr(res.error);
-    }
+    if (res.ok) { setSuccess(`Subcategory "${res.data.name}" created!`); setForm({ parent_id: form.parent_id, name: "", slug: "" }); }
+    else setApiErr(res.error);
   };
 
   return (
     <div className="adm-form-stack">
-      <ApiError   message={apiErr}  onDismiss={() => setApiErr(null)} />
+      <ApiError message={apiErr} onDismiss={() => setApiErr(null)} />
       <ApiSuccess message={success} />
-      <AdminSelect
-        label="Parent Category"
-        name="parent_id"
-        value={form.parent_id}
-        onChange={set}
-        options={rootCats.map((c) => ({ value: c.id, label: c.name }))}
-        placeholder="— Select parent —"
-        error={errors.parent_id}
-        required
-      />
+      <AdminSelect label="Parent Category" name="parent_id" value={form.parent_id} onChange={set}
+        options={roots.map((c) => ({ value: c.id, label: c.name }))} placeholder="— Select parent —" required />
       <div className="adm-form-row">
-        <AdminField label="Subcategory Name" name="name" placeholder="e.g. Smartphones" value={form.name} onChange={set} error={errors.name} required />
-        <AdminField label="Slug"             name="slug" placeholder="auto-generated"   value={form.slug} onChange={set} error={errors.slug} hint="Auto-generated" required />
+        <AdminField label="Subcategory Name" name="name" placeholder="e.g. Headlamps" value={form.name} onChange={set} error={errors.name} required />
+        <AdminField label="Slug" name="slug" placeholder="auto-generated" value={form.slug} onChange={set} error={errors.slug} required />
       </div>
-      <button className="adm-btn-primary" onClick={submit} disabled={loading || !rootCats.length}>
+      <button className="adm-btn-primary" onClick={submit} disabled={loading || !roots.length}>
         {loading ? <span className="fs-spin">↻</span> : "+ Create Subcategory"}
       </button>
     </div>
   );
 }
 
-// ── Category tree ────────────────────────────────────────────
-function CategoryTree({ categories }) {
-  const rootCats = categories.filter((c) => !c.parent_id);
-
-  if (rootCats.length === 0) {
-    return (
-      <div className="adm-empty-inline">
-        <span>📂</span> No categories yet. Create your first one above.
-      </div>
-    );
-  }
-
-  return (
-    <div className="adm-table-wrap">
-      <table className="adm-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Slug</th>
-            <th>Type</th>
-            <th>Parent</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {categories.map((cat) => {
-            const parent = categories.find((c) => c.id === cat.parent_id);
-            return (
-              <tr key={cat.id}>
-                <td>
-                  <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
-                    {cat.parent_id && <span style={{ color: "var(--muted)", fontSize: ".7rem" }}>└─</span>}
-                    <span className="adm-table-name">{cat.name}</span>
-                  </div>
-                </td>
-                <td><span className="adm-mono">{cat.slug}</span></td>
-                <td>
-                  <span className={`adm-badge ${cat.parent_id ? "neutral" : "accent"}`}>
-                    {cat.parent_id ? "Sub" : "Root"}
-                  </span>
-                </td>
-                <td className="adm-muted">{parent?.name || "—"}</td>
-                <td>
-                  <span className={`adm-badge ${cat.is_active ? "success" : "neutral"}`}>
-                    {cat.is_active ? "Active" : "Inactive"}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ── Page ─────────────────────────────────────────────────────
 export default function CategoriesPage() {
   const { state, actions } = useStore();
   const { categories } = state;
@@ -212,28 +117,52 @@ export default function CategoriesPage() {
         <button className="adm-btn-outline" onClick={actions.fetchCategories}>↻ Refresh</button>
       </div>
 
-      {/* Two-column forms */}
+      {categories.error && (
+        <div className="adm-api-error" style={{ marginBottom:"1.5rem" }}>
+          ✕ {categories.error}
+          <button className="adm-api-error-close" onClick={actions.fetchCategories}>Retry</button>
+        </div>
+      )}
+
       <div className="adm-two-col">
-        <AdminCard title="Add Category" subtitle="Create a new top-level category">
+        <AdminCard title="Add Category" subtitle="POST /api/categories  · { name, slug }">
           <AddCategoryForm />
         </AdminCard>
-
-        <AdminCard title="Add Subcategory" subtitle="Add a subcategory under an existing one">
+        <AdminCard title="Add Subcategory" subtitle="POST /api/categories  · { parent_id, name, slug }">
           <AddSubcategoryForm categories={categories.data} />
         </AdminCard>
       </div>
 
-      {/* Category list */}
-      <AdminCard
-        title="All Categories"
-        subtitle={`${categories.data.length} categories total`}
-      >
+      <AdminCard title={`All Categories (${categories.data.length})`} subtitle="GET /api/categories → Category[] with SubCategories[]">
         {categories.loading ? (
-          <div className="adm-skeleton-list">
-            {[1,2,3,4,5].map(i => <div key={i} className="adm-skeleton" style={{ height: 44, borderRadius: 6 }} />)}
-          </div>
+          <div className="adm-skeleton-list">{[1,2,3,4,5].map(i => <div key={i} className="adm-skeleton" style={{height:44,borderRadius:4}} />)}</div>
+        ) : categories.data.length === 0 ? (
+          <div className="adm-empty-inline"><span>📂</span> No categories yet.</div>
         ) : (
-          <CategoryTree categories={categories.data} />
+          <div className="adm-table-wrap">
+            <table className="adm-table">
+              <thead><tr><th>Name</th><th>Slug</th><th>Type</th><th>Parent</th><th>Status</th></tr></thead>
+              <tbody>
+                {categories.data.map((cat) => {
+                  const parent = categories.data.find((c) => c.id === cat.parent_id);
+                  return (
+                    <tr key={cat.id}>
+                      <td>
+                        <div style={{ display:"flex", alignItems:"center", gap:".4rem" }}>
+                          {cat.parent_id && <span style={{ color:"var(--muted)", fontSize:".7rem" }}>└─</span>}
+                          <span className="adm-table-name">{cat.name}</span>
+                        </div>
+                      </td>
+                      <td><span className="adm-mono">{cat.slug}</span></td>
+                      <td><span className={`adm-badge ${cat.parent_id ? "neutral" : "accent"}`}>{cat.parent_id ? "Sub" : "Root"}</span></td>
+                      <td className="adm-muted">{parent?.name || "—"}</td>
+                      <td><span className={`adm-badge ${cat.is_active !== false ? "success" : "neutral"}`}>{cat.is_active !== false ? "Active" : "Inactive"}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </AdminCard>
     </div>

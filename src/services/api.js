@@ -1,91 +1,94 @@
 /**
- * API CLIENT
- * ─────────────────────────────────────────────────────────────
- * Central HTTP client for all backend calls.
- * - Attaches Authorization header from stored accessToken
- * - Auto-refreshes token on 401 using refreshToken
- * - All methods throw a normalised { message, status } error
+ * BASE API CLIENT  — FoxFury Backend
+ * Base URL: http://localhost:3000/api
  *
- * Change BASE_URL to point at your server.
+ * Handles:
+ *  - JWT Bearer token attachment on every request
+ *  - Automatic token refresh via POST /api/auth/refresh-token on 401
+ *  - Network-level failures (server down, CORS) with clear error messages
+ *  - Throws structured { message, status } — never silent fallbacks here
  */
 
 export const BASE_URL = "http://localhost:3000/api";
 
-// ── Token helpers (sessionStorage = cleared on tab close) ────
+// ── Token storage (sessionStorage — cleared on tab close) ─────
 export const TokenStore = {
-  getAccess:   () => sessionStorage.getItem("accessToken"),
-  getRefresh:  () => sessionStorage.getItem("refreshToken"),
-  setTokens:   (access, refresh) => {
-    sessionStorage.setItem("accessToken",  access);
-    if (refresh) sessionStorage.setItem("refreshToken", refresh);
+  getAccess:  () => sessionStorage.getItem("ff_access"),
+  getRefresh: () => sessionStorage.getItem("ff_refresh"),
+  set: (access, refresh) => {
+    sessionStorage.setItem("ff_access", access);
+    if (refresh) sessionStorage.setItem("ff_refresh", refresh);
   },
-  clear:       () => {
-    sessionStorage.removeItem("accessToken");
-    sessionStorage.removeItem("refreshToken");
+  clear: () => {
+    sessionStorage.removeItem("ff_access");
+    sessionStorage.removeItem("ff_refresh");
   },
 };
 
-// ── Core fetch wrapper ───────────────────────────────────────
+// ── Core fetch wrapper ────────────────────────────────────────
 async function request(path, options = {}, retry = true) {
-  const headers = {
-    "Content-Type": "application/json",
-    ...(options.headers || {}),
-  };
-
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
   const token = TokenStore.getAccess();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  } catch {
+    // Network error — server down, no internet, CORS preflight failed
+    throw {
+      message: "Cannot reach the server. Make sure the FoxFury backend is running on localhost:3000.",
+      status: 0,
+    };
+  }
 
-  // Token expired → try refresh once
+  // 401 → try refresh once, then force logout
   if (res.status === 401 && retry) {
     const refreshed = await tryRefresh();
     if (refreshed) return request(path, options, false);
     TokenStore.clear();
     window.dispatchEvent(new Event("auth:logout"));
-    throw { message: "Session expired. Please log in again.", status: 401 };
+    throw { message: "Session expired. Please sign in again.", status: 401 };
   }
 
   if (!res.ok) {
-    let errMsg = `Request failed (${res.status})`;
+    let msg = `Request failed (${res.status})`;
     try {
-      const body = await res.json();
-      errMsg = body.message || body.error || errMsg;
+      const b = await res.json();
+      msg = b.message || b.error || msg;
     } catch (_) {}
-    throw { message: errMsg, status: res.status };
+    throw { message: msg, status: res.status };
   }
 
-  // 204 No Content
   if (res.status === 204) return null;
   return res.json();
 }
 
+// ── Token refresh — POST /api/auth/refresh-token ──────────────
 async function tryRefresh() {
-  const refreshToken = TokenStore.getRefresh();
-  if (!refreshToken) return false;
+  const rt = TokenStore.getRefresh();
+  if (!rt) return false;
   try {
-    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+    const res = await fetch(`${BASE_URL}/auth/refresh-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify({ refreshToken: rt }),
     });
     if (!res.ok) return false;
-    const data = await res.json();
-    TokenStore.setTokens(data.accessToken, data.refreshToken);
+    const d = await res.json();
+    // refresh-token endpoint returns only { accessToken }
+    TokenStore.set(d.accessToken, rt);
     return true;
-  } catch (_) {
+  } catch {
     return false;
   }
 }
 
-// ── Exported methods ─────────────────────────────────────────
+// ── Public API ────────────────────────────────────────────────
 export const api = {
-  get:    (path, opts)         => request(path, { method: "GET", ...opts }),
-  post:   (path, body, opts)   => request(path, { method: "POST",   body: JSON.stringify(body), ...opts }),
-  put:    (path, body, opts)   => request(path, { method: "PUT",    body: JSON.stringify(body), ...opts }),
-  patch:  (path, body, opts)   => request(path, { method: "PATCH",  body: JSON.stringify(body), ...opts }),
-  delete: (path, opts)         => request(path, { method: "DELETE", ...opts }),
+  get:    (path, opts)       => request(path, { method: "GET",    ...opts }),
+  post:   (path, body, opts) => request(path, { method: "POST",   body: JSON.stringify(body), ...opts }),
+  put:    (path, body, opts) => request(path, { method: "PUT",    body: JSON.stringify(body), ...opts }),
+  patch:  (path, body, opts) => request(path, { method: "PATCH",  body: JSON.stringify(body), ...opts }),
+  delete: (path, opts)       => request(path, { method: "DELETE", ...opts }),
 };

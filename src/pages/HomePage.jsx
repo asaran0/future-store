@@ -107,12 +107,14 @@ function FeaturedProducts({ setPage }) {
   const { products } = state;
 
   useEffect(() => {
-    if (!products.data.length && !products.loading) actions.fetchProducts();
+    if (!products.data.length && !products.loading && !products.error) actions.fetchProducts();
   }, []);
 
-  const list = products.data.length
-    ? products.data.slice(0, 4)
-    : STATIC_PRODUCTS.filter((p) => p.badge).slice(0, 4);
+  // API is the source of truth; static catalog only on actual API failure.
+  const usingFallback = Boolean(products.error);
+  const list = usingFallback
+    ? STATIC_PRODUCTS.filter((p) => p.badge).slice(0, 4)
+    : products.data.slice(0, 4);
 
   return (
     <section className="ff-section ff-section-dark">
@@ -123,10 +125,26 @@ function FeaturedProducts({ setPage }) {
         </div>
         <button className="ff-see-all" onClick={() => setPage("shop")}>VIEW ALL →</button>
       </div>
+
+      {usingFallback && (
+        <div className="ff-fallback-notice" style={{ marginBottom: "1.5rem" }}>
+          <span>⚠ Live API unavailable — showing demo catalog.</span>
+          <button className="ff-btn-outline-sm" onClick={actions.fetchProducts}>↻ RETRY API</button>
+        </div>
+      )}
+
       <div className="ff-grid">
         {products.loading
           ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
-          : list.map((p) => <ProductCard key={p.id} product={p} />)
+          : list.length > 0
+            ? list.map((p) => <ProductCard key={p.id} product={p} />)
+            : (
+              <div className="ff-empty-grid">
+                <div style={{ fontSize: "2.5rem", marginBottom: ".75rem" }}>📭</div>
+                <div className="ff-empty-title">No products yet</div>
+                <div className="ff-empty-sub">Check back soon, or add products via the admin panel.</div>
+              </div>
+            )
         }
       </div>
     </section>

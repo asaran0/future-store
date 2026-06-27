@@ -1,10 +1,3 @@
-/**
- * GLOBAL STORE — Redux-style reducer
- * State shape:
- *   cart, wishlist, user, products, categories,
- *   ui, filters, orders, theme, admin
- */
-
 import { ACTIVE_THEME } from "../theme/themes";
 
 export const initialState = {
@@ -13,40 +6,31 @@ export const initialState = {
   user:       null,
   products:   { data: [], loading: false, error: null },
   categories: { data: [], loading: false, error: null },
-  ui: {
-    cartOpen:     false,
-    notification: null,
-    authModal:    null,
-  },
-  filters: { category: "all", sort: "featured", search: "" },
-  orders:  [],
-  theme:   ACTIVE_THEME,
-  admin: {
-    // selected product in admin product detail view
-    selectedProduct: null,
-  },
+  industries: { data: [], loading: false, error: null },
+  warehouses: { data: [] },
+  ui: { cartOpen: false, notification: null, authModal: null },
+  filters:    { industryId: null, categoryId: null, sort: "featured", search: "" },
+  orders:     [],
+  theme:      ACTIVE_THEME,
+  admin:      { selectedProduct: null },
 };
 
 export function appReducer(state, action) {
   switch (action.type) {
 
-    // ── PRODUCTS ──────────────────────────────────────────────
+    // ── PRODUCTS ─────────────────────────────────────────────
     case "PRODUCTS_LOADING":
       return { ...state, products: { ...state.products, loading: true, error: null } };
     case "PRODUCTS_SUCCESS":
       return { ...state, products: { data: action.payload, loading: false, error: null } };
     case "PRODUCTS_ERROR":
       return { ...state, products: { ...state.products, loading: false, error: action.payload } };
-
-    // Prepend a newly created product to the list
     case "PRODUCT_CREATED":
       return {
         ...state,
         products: { ...state.products, data: [action.payload, ...state.products.data] },
-        ui: { ...state.ui, notification: { type: "success", msg: `Product "${action.payload.name}" created!` } },
+        ui: { ...state.ui, notification: { type: "success", msg: `"${action.payload.name}" created!` } },
       };
-
-    // Add variant to a product already in state
     case "VARIANT_ADDED": {
       const { productId, variant } = action.payload;
       return {
@@ -62,8 +46,6 @@ export function appReducer(state, action) {
         ui: { ...state.ui, notification: { type: "success", msg: `Variant "${variant.variant_name}" added!` } },
       };
     }
-
-    // Add media to a product already in state
     case "MEDIA_ADDED": {
       const { productId, media } = action.payload;
       return {
@@ -76,7 +58,7 @@ export function appReducer(state, action) {
               : p
           ),
         },
-        ui: { ...state.ui, notification: { type: "success", msg: "Media added!" } },
+        ui: { ...state.ui, notification: { type: "success", msg: "Media added successfully!" } },
       };
     }
 
@@ -87,7 +69,6 @@ export function appReducer(state, action) {
       return { ...state, categories: { data: action.payload, loading: false, error: null } };
     case "CATEGORIES_ERROR":
       return { ...state, categories: { ...state.categories, loading: false, error: action.payload } };
-
     case "CATEGORY_CREATED":
       return {
         ...state,
@@ -95,7 +76,26 @@ export function appReducer(state, action) {
         ui: { ...state.ui, notification: { type: "success", msg: `Category "${action.payload.name}" created!` } },
       };
 
-    // ── CART ──────────────────────────────────────────────────
+    // ── INDUSTRIES ────────────────────────────────────────────
+    // API response shape: { success: true, data: Industry[] }
+    case "INDUSTRIES_LOADING":
+      return { ...state, industries: { ...state.industries, loading: true, error: null } };
+    case "INDUSTRIES_SUCCESS":
+      return { ...state, industries: { data: action.payload, loading: false, error: null } };
+    case "INDUSTRIES_ERROR":
+      return { ...state, industries: { ...state.industries, loading: false, error: action.payload } };
+    case "INDUSTRY_CREATED":
+      return {
+        ...state,
+        industries: { ...state.industries, data: [...state.industries.data, action.payload] },
+        ui: { ...state.ui, notification: { type: "success", msg: `Industry "${action.payload.name}" created!` } },
+      };
+
+    // ── WAREHOUSES ────────────────────────────────────────────
+    case "WAREHOUSES_SUCCESS":
+      return { ...state, warehouses: { data: action.payload } };
+
+    // ── CART ─────────────────────────────────────────────────
     case "ADD_TO_CART": {
       const existing = state.cart.find((i) => i.id === action.payload.id);
       return {
@@ -145,7 +145,7 @@ export function appReducer(state, action) {
     case "CLEAR_NOTIFICATION":
       return { ...state, ui: { ...state.ui, notification: null } };
 
-    // ── AUTH ──────────────────────────────────────────────────
+    // ── AUTH ─────────────────────────────────────────────────
     case "LOGIN_SUCCESS":
       return {
         ...state,
@@ -153,7 +153,7 @@ export function appReducer(state, action) {
         ui: {
           ...state.ui,
           authModal: null,
-          notification: { type: "success", msg: `Welcome back, ${action.payload.first_name || action.payload.email}!` },
+          notification: { type: "success", msg: `Welcome, ${action.payload.first_name || action.payload.email}!` },
         },
       };
     case "REGISTER_SUCCESS":
@@ -180,12 +180,17 @@ export function appReducer(state, action) {
         items:  state.cart,
         date:   new Date().toISOString(),
         status: "processing",
-        total:  state.cart.reduce((s, i) => s + parseFloat(i.price) * i.qty, 0),
+        total:  state.cart.reduce((s, i) => s + parseFloat(i.price || 0) * i.qty, 0),
       };
       return {
         ...state,
-        cart: [], orders: [...state.orders, order],
-        ui: { ...state.ui, cartOpen: false, notification: { type: "success", msg: "Order placed successfully!" } },
+        cart:   [],
+        orders: [...state.orders, order],
+        ui: {
+          ...state.ui,
+          cartOpen:     false,
+          notification: { type: "success", msg: "Order placed successfully!" },
+        },
       };
     }
 
