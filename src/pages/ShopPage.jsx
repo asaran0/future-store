@@ -1,194 +1,194 @@
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store/StoreContext";
 import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
-import { INDUSTRIES, PRODUCTS as STATIC_PRODUCTS } from "../data/foxfury";
+import { getProductsByIndustry } from "../services/productService";
 
 const SORT_OPTIONS = [
-  { value: "featured",    label: "FEATURED" },
-  { value: "price-asc",   label: "PRICE: LOW → HIGH" },
-  { value: "price-desc",  label: "PRICE: HIGH → LOW" },
-  { value: "name",        label: "NAME A–Z" },
+  { value:"featured",   label:"FEATURED" },
+  { value:"price-asc",  label:"PRICE: LOW → HIGH" },
+  { value:"price-desc", label:"PRICE: HIGH → LOW" },
+  { value:"name",       label:"NAME A–Z" },
 ];
 
-export default function ShopPage({ activeIndustry, setActiveIndustry }) {
+export default function ShopPage() {
   const { state, actions, dispatch } = useStore();
-  const { products, filters } = state;
-  const [productType, setProductType] = useState("all");
+  const { products, industries, categories, filters } = state;
+  const [industryProducts, setIndustryProducts] = useState(null);
+  const [indLoading, setIndLoading] = useState(false);
+  const [indError, setIndError]     = useState(null);
 
+  /* Fetch on mount */
   useEffect(() => {
-    if (!products.data.length && !products.loading && !products.error) actions.fetchProducts();
+    if (!products.data.length   && !products.loading   && !products.error)   actions.fetchProducts();
+    if (!industries.data.length && !industries.loading && !industries.error) actions.fetchIndustries();
+    if (!categories.data.length && !categories.loading && !categories.error) actions.fetchCategories();
   }, []);
 
-  // API is the source of truth. Static catalog is used ONLY when the API call
-  // actually failed (products.error set) — never just because data is empty.
-  const usingFallback = Boolean(products.error);
-  const sourceProducts = usingFallback ? STATIC_PRODUCTS : products.data;
+  /* Fetch products by industry when industryId changes */
+  useEffect(() => {
+    if (!filters.industryId || filters.industryId === "all") {
+      setIndustryProducts(null); setIndError(null); return;
+    }
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(filters.industryId);
+    if (!isUUID) { setIndustryProducts(null); return; }
+
+    setIndLoading(true); setIndError(null);
+    getProductsByIndustry(filters.industryId)
+      .then(res => {
+        setIndustryProducts(Array.isArray(res?.products) ? res.products : Array.isArray(res) ? res : []);
+        setIndLoading(false);
+      })
+      .catch(err => { setIndError(err.message); setIndustryProducts(null); setIndLoading(false); });
+  }, [filters.industryId]);
+
+  /* Source: industry-filtered list OR full product list */
+  const baseProducts = industryProducts !== null ? industryProducts : products.data;
 
   const filtered = useMemo(() => {
-    let list = sourceProducts;
-
-    // Industry filter (from nav or sidebar)
-    if (activeIndustry && activeIndustry !== "all") {
-      list = list.filter((p) =>
-        Array.isArray(p.industry)
-          ? p.industry.includes(activeIndustry)
-          : p.category_id === activeIndustry
-      );
-    }
-
-    // Product type
-    if (productType !== "all") {
-      list = list.filter((p) =>
-        (p.category || p.category_id || "").toLowerCase().includes(productType.toLowerCase())
-      );
-    }
-
-    // Text search
+    let list = [...baseProducts];
     if (filters.search) {
       const q = filters.search.toLowerCase();
-      list = list.filter((p) =>
+      list = list.filter(p =>
         p.name?.toLowerCase().includes(q) ||
         p.description?.toLowerCase().includes(q) ||
         p.brand?.toLowerCase().includes(q) ||
-        p.sku?.toLowerCase().includes(q) ||
-        p.specs?.some((s) => s.toLowerCase().includes(q))
+        p.sku?.toLowerCase().includes(q)
       );
     }
-
-    // Sort
-    if (filters.sort === "price-asc")  list = [...list].sort((a,b) => (parseFloat(a.price||a.ProductVariants?.[0]?.msrp||0)) - (parseFloat(b.price||b.ProductVariants?.[0]?.msrp||0)));
-    if (filters.sort === "price-desc") list = [...list].sort((a,b) => (parseFloat(b.price||b.ProductVariants?.[0]?.msrp||0)) - (parseFloat(a.price||a.ProductVariants?.[0]?.msrp||0)));
-    if (filters.sort === "name")       list = [...list].sort((a,b) => a.name.localeCompare(b.name));
-
+    if (filters.sort === "price-asc")  list.sort((a,b) => parseFloat(a.ProductVariants?.[0]?.msrp||0) - parseFloat(b.ProductVariants?.[0]?.msrp||0));
+    if (filters.sort === "price-desc") list.sort((a,b) => parseFloat(b.ProductVariants?.[0]?.msrp||0) - parseFloat(a.ProductVariants?.[0]?.msrp||0));
+    if (filters.sort === "name")       list.sort((a,b) => a.name.localeCompare(b.name));
     return list;
-  }, [sourceProducts, activeIndustry, productType, filters]);
+  }, [baseProducts, filters.search, filters.sort]);
 
-  const setFilter = (payload) => dispatch({ type: "SET_FILTER", payload });
-  const activeIndustryObj = INDUSTRIES.find((i) => i.id === activeIndustry);
+  const setFilter = p => dispatch({ type:"SET_FILTER", payload:p });
 
-  const PRODUCT_TYPES = ["all","scene-lights","headlamps","flashlights","shield-lights","area-lights","drone-lights","forensic-lights"];
+  const activeInd  = industries.data.find(i => i.id === filters.industryId);
+  const isLoading  = products.loading || indLoading;
+  const rootCats   = categories.data.filter(c => !c.parent_id);
 
   return (
     <div className="ff-page">
+      {/* Shop header */}
       <div className="ff-shop-hero">
-        <div className="ff-shop-hero-content">
-          <div className="ff-section-eyebrow">
-            {activeIndustryObj ? `SHOP BY INDUSTRY / ${activeIndustryObj.label.toUpperCase()}` : "ALL PRODUCTS"}
-          </div>
-          <h1 className="ff-shop-title">
-            {activeIndustryObj
-              ? <><span style={{ color: "var(--accent)" }}>{activeIndustryObj.icon}</span> {activeIndustryObj.label}</>
-              : "FoxFury Products"
-            }
-          </h1>
-          {activeIndustryObj && (
-            <p className="ff-shop-sub">{activeIndustryObj.desc}</p>
-          )}
-          {activeIndustryObj?.features && (
-            <div className="ff-ind-tags-row">
-              {activeIndustryObj.features.map((f) => <span key={f} className="ff-ind-tag">{f}</span>)}
-            </div>
-          )}
+        <div className="ff-section-eyebrow">
+          {activeInd ? `SHOP / ${activeInd.name.toUpperCase()}` : "ALL PRODUCTS"}
         </div>
+        <h1 className="ff-shop-title">
+          {activeInd ? activeInd.name : "FoxFury Products"}
+        </h1>
+        {activeInd?.description && (
+          <p className="ff-shop-sub">{activeInd.description}</p>
+        )}
       </div>
 
       <div className="ff-shop-body">
         {/* Sidebar */}
         <aside className="ff-shop-sidebar">
+          {/* Industries from API */}
           <div className="ff-sidebar-section">
-            <div className="ff-sidebar-title">SHOP BY INDUSTRY</div>
+            <div className="ff-sidebar-title">BY INDUSTRY</div>
             <button
-              className={`ff-sidebar-item ${!activeIndustry || activeIndustry === "all" ? "active" : ""}`}
-              onClick={() => setActiveIndustry("all")}
-            >
+              className={`ff-sidebar-item ${!filters.industryId ? "active" : ""}`}
+              onClick={() => setFilter({ industryId: null })}>
               <span>⬡</span> All Industries
             </button>
-            {INDUSTRIES.map((ind) => (
-              <button
-                key={ind.id}
-                className={`ff-sidebar-item ${activeIndustry === ind.id ? "active" : ""}`}
-                onClick={() => setActiveIndustry(ind.id)}
-              >
-                <span>{ind.icon}</span> {ind.label}
-              </button>
-            ))}
+            {industries.loading ? (
+              [1,2,3].map(i => <div key={i} className="ff-skeleton" style={{ height:28, margin:".2rem 0" }} />)
+            ) : industries.error ? (
+              <div style={{ fontSize:".58rem", color:"var(--danger)", fontFamily:"var(--fontMono)", padding:".4rem .55rem" }}>
+                API Error — {industries.error}
+              </div>
+            ) : (
+              industries.data.map(ind => (
+                <button key={ind.id}
+                  className={`ff-sidebar-item ${filters.industryId === ind.id ? "active" : ""}`}
+                  onClick={() => setFilter({ industryId: ind.id })}>
+                  <span>◈</span> {ind.name}
+                </button>
+              ))
+            )}
           </div>
 
-          <div className="ff-sidebar-section">
-            <div className="ff-sidebar-title">PRODUCT TYPE</div>
-            {PRODUCT_TYPES.map((type) => (
+          {/* Categories from API */}
+          {rootCats.length > 0 && (
+            <div className="ff-sidebar-section">
+              <div className="ff-sidebar-title">BY CATEGORY</div>
               <button
-                key={type}
-                className={`ff-sidebar-item ${productType === type ? "active" : ""}`}
-                onClick={() => setProductType(type)}
-              >
-                {type === "all" ? "⬡ All Types" : `◈ ${type.replace(/-/g," ").replace(/\b\w/g,c=>c.toUpperCase())}`}
+                className={`ff-sidebar-item ${!filters.categoryId ? "active" : ""}`}
+                onClick={() => setFilter({ categoryId: null })}>
+                <span>⬡</span> All Categories
               </button>
-            ))}
-          </div>
+              {rootCats.map(cat => (
+                <button key={cat.id}
+                  className={`ff-sidebar-item ${filters.categoryId === cat.id ? "active" : ""}`}
+                  onClick={() => setFilter({ categoryId: cat.id })}>
+                  <span>◈</span> {cat.name}
+                </button>
+              ))}
+            </div>
+          )}
         </aside>
 
         {/* Main */}
         <div className="ff-shop-main">
-          {/* Filter bar */}
-          <div className="ff-filter-bar">
-            <div className="ff-search-bar">
-              <span style={{ color: "var(--muted)" }}>🔍</span>
-              <input
-                className="ff-search-input"
-                placeholder="Search products, specs, SKUs…"
-                value={filters.search}
-                onChange={(e) => setFilter({ search: e.target.value })}
-              />
-              {filters.search && (
-                <span className="ff-search-clear" onClick={() => setFilter({ search: "" })}>✕</span>
-              )}
+          {/* API error banners */}
+          {products.error && (
+            <div className="ff-api-error-banner">
+              <span>✕ Products API: {products.error}</span>
+              <button className="ff-btn-sm" onClick={actions.fetchProducts}>↻ Retry</button>
             </div>
-
-            <select
-              className="ff-filter-select"
-              value={filters.sort}
-              onChange={(e) => setFilter({ sort: e.target.value })}
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-
-            <div className="ff-result-count">
-              {products.loading ? "Loading…" : `${filtered.length} product${filtered.length !== 1 ? "s" : ""}`}
-            </div>
-          </div>
-
-          {/* API fallback notice — shown only when the live API call failed */}
-          {usingFallback && (
-            <div className="ff-fallback-notice">
-              <span>⚠ Live API unavailable — showing demo catalog.</span>
-              <button className="ff-btn-outline-sm" onClick={actions.fetchProducts}>↻ RETRY API</button>
+          )}
+          {indError && (
+            <div className="ff-api-error-banner">
+              <span>✕ Industry filter error: {indError}</span>
+              <button className="ff-btn-sm" onClick={() => setFilter({ industryId: null })}>Clear Filter</button>
             </div>
           )}
 
-          {/* Grid */}
-          <div className="ff-grid">
-            {products.loading
-              ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
-              : filtered.length > 0
-                ? filtered.map((p) => <ProductCard key={p.id} product={p} />)
-                : (
-                  <div className="ff-empty-grid">
-                    <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔭</div>
-                    <div className="ff-empty-title">No products found</div>
-                    <div className="ff-empty-sub">
-                      {filters.search ? `No results for "${filters.search}"` : "No products in this category"}
-                    </div>
-                    <button className="ff-btn-yellow" style={{ marginTop: "1.25rem" }}
-                      onClick={() => { setActiveIndustry("all"); setFilter({ search: "" }); }}>
-                      CLEAR FILTERS
-                    </button>
-                  </div>
-                )
-            }
+          {/* Filter bar */}
+          <div className="ff-filter-bar">
+            <div className="ff-search-bar">
+              <span style={{ color:"var(--muted)", fontSize:".82rem" }}>🔍</span>
+              <input className="ff-search-input" placeholder="Search products, brand, SKU…"
+                value={filters.search}
+                onChange={e => setFilter({ search: e.target.value })} />
+              {filters.search && (
+                <span className="ff-search-clear" onClick={() => setFilter({ search:"" })}>✕</span>
+              )}
+            </div>
+            <select className="ff-filter-select" value={filters.sort}
+              onChange={e => setFilter({ sort: e.target.value })}>
+              {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <div className="ff-result-count">
+              {isLoading ? "Loading…" : `${filtered.length} product${filtered.length !== 1 ? "s" : ""}`}
+            </div>
           </div>
+
+          {/* Product grid — no static fallback, API only */}
+          {!products.error && (
+            <div className="ff-grid">
+              {isLoading
+                ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
+                : filtered.length > 0
+                  ? filtered.map(p => <ProductCard key={p.id} product={p} />)
+                  : (
+                    <div className="ff-empty-grid">
+                      <div style={{ fontSize:"2.5rem", marginBottom:"1rem" }}>🔭</div>
+                      <div className="ff-empty-title">NO PRODUCTS FOUND</div>
+                      <div className="ff-empty-sub">
+                        {filters.search ? `No results for "${filters.search}"` : "No products in this selection"}
+                      </div>
+                      <button className="ff-btn-accent-sm" style={{ marginTop:"1.25rem" }}
+                        onClick={() => setFilter({ search:"", industryId:null, categoryId:null })}>
+                        CLEAR FILTERS
+                      </button>
+                    </div>
+                  )
+              }
+            </div>
+          )}
         </div>
       </div>
     </div>

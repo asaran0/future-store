@@ -10,14 +10,14 @@
  */
 import { createContext, useContext, useReducer, useEffect } from "react";
 import { appReducer, initialState } from "./reducer";
-import { login, register, logout as logoutSvc } from "../services/authService";
+import { login as apiLogin, register as apiRegister, logout as logoutSvc } from "../services/authService";
 import {
   getProducts, getCategories, getIndustries,
-  createProduct, createCategory, createIndustry,
+  createProduct as apiCreateProduct, createCategory as apiCreateCategory, createIndustry as apiCreateIndustry,
   addVariant, addMedia,
   assignIndustryToProduct,
-  updateStockBalance, reserveStock, shipReservedStock, getVariantStock,
-  getWarehouses, createWarehouse,
+  updateStockBalance, reserveStock as apiReserveStock, shipReservedStock, getVariantStock,
+  getWarehouses, createWarehouse as apiCreateWarehouse,
 } from "../services/productService";
 import { TokenStore } from "../services/api";
 
@@ -31,7 +31,7 @@ export function StoreProvider({ children }) {
     // ── AUTH ──────────────────────────────────────────────────
     login: async (creds) => {
       try {
-        const data = await login(creds);
+        const data = await apiLogin(creds);
         // Backend login returns { message, accessToken, refreshToken }
         // Decode user info from the JWT payload
         const user = parseJWT(data.accessToken) || { email: creds.email, first_name: creds.email.split("@")[0] };
@@ -46,9 +46,9 @@ export function StoreProvider({ children }) {
     register: async (formData) => {
       try {
         // POST /api/auth/register → { message, user }
-        const regData = await register(formData);
+        const regData = await apiRegister(formData);
         // Auto-login after registration
-        const loginData = await login({ email: formData.email, password: formData.password });
+        const loginData = await apiLogin({ email: formData.email, password: formData.password });
         const user = regData.user || parseJWT(loginData.accessToken) || {
           email: formData.email,
           first_name: formData.firstName,
@@ -81,7 +81,7 @@ export function StoreProvider({ children }) {
     // ── PRODUCTS — POST /api/products ─────────────────────────
     createProduct: async (payload) => {
       try {
-        const product = await createProduct(payload);
+        const product = await apiCreateProduct(payload);
         dispatch({ type: "PRODUCT_CREATED", payload: product });
         return { ok: true, data: product };
       } catch (err) {
@@ -128,7 +128,7 @@ export function StoreProvider({ children }) {
     // ── CATEGORIES — POST /api/categories (auth required) ─────
     createCategory: async (payload) => {
       try {
-        const cat = await createCategory(payload);
+        const cat = await apiCreateCategory(payload);
         dispatch({ type: "CATEGORY_CREATED", payload: cat });
         return { ok: true, data: cat };
       } catch (err) {
@@ -155,7 +155,7 @@ export function StoreProvider({ children }) {
     // Response shape: { success: true, data: Industry }
     createIndustry: async (payload) => {
       try {
-        const res = await createIndustry(payload);
+        const res = await apiCreateIndustry(payload);
         const industry = res?.data || res;
         dispatch({ type: "INDUSTRY_CREATED", payload: industry });
         return { ok: true, data: industry };
@@ -194,7 +194,7 @@ export function StoreProvider({ children }) {
     // POST /api/inventory/reserve  body: { variant_id, warehouse_id, quantity }
     reserveStock: async (payload) => {
       try {
-        const res = await reserveStock(payload);
+        const res = await apiReserveStock(payload);
         return { ok: true, data: res };
       } catch (err) {
         dispatch({ type: "SHOW_NOTIFICATION", payload: { type: "error", msg: err.message } });
@@ -233,7 +233,7 @@ export function StoreProvider({ children }) {
     },
     createWarehouse: async (payload) => {
       try {
-        const res = await createWarehouse(payload);
+        const res = await apiCreateWarehouse(payload);
         dispatch({ type: "SHOW_NOTIFICATION", payload: { type: "success", msg: `Warehouse "${res.name}" created!` } });
         return { ok: true, data: res };
       } catch (err) {
