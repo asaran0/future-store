@@ -28,12 +28,26 @@ const CSS = `
   .ff-nav-link.active{position:relative}
   .ff-nav-link.active::before{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--accent)}
 
-  .ff-dropdown{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:rgba(11,11,20,.96);border:1px solid var(--border);border-radius:4px;padding:.35rem;min-width:230px;z-index:2000;box-shadow:0 24px 60px rgba(0,0,0,.8);animation:slideDown .18s ease;backdrop-filter:blur(20px)}
+  .ff-dropdown{position:absolute;top:100%;left:50%;transform:translateX(-50%);padding-top:8px;min-width:230px;z-index:2000}
+  .ff-dropdown-inner{background:rgba(11,11,20,.96);border:1px solid var(--border);border-radius:4px;padding:.35rem;box-shadow:0 24px 60px rgba(0,0,0,.8);animation:slideDown .18s ease;backdrop-filter:blur(20px)}
   .ff-dropdown-item{display:flex;align-items:center;gap:.65rem;padding:.5rem .75rem;border-radius:3px;border:none;background:transparent;color:rgba(255,255,255,.7);cursor:pointer;width:100%;text-align:left;transition:all .15s}
   .ff-dropdown-item:hover{background:rgba(255,255,255,.05);color:#fff}
   .ff-dropdown-icon{font-size:.95rem;flex-shrink:0;width:20px;text-align:center}
   .ff-dropdown-label{font-family:var(--fontDisplay);font-size:.68rem;font-weight:600;letter-spacing:.06em}
   .ff-dropdown-desc{font-size:.58rem;color:rgba(255,255,255,.35);margin-top:1px}
+
+  /* ── Industry mega-panel ── */
+  .ff-industry-panel{position:absolute;top:100%;left:50%;transform:translateX(-50%);padding-top:8px;z-index:2000;min-width:420px}
+  .ff-industry-panel-inner{background:rgba(11,11,20,.97);border:1px solid var(--border);border-radius:6px;padding:1rem 1.1rem 1.1rem;box-shadow:0 28px 70px rgba(0,0,0,.85);animation:slideDown .18s ease;backdrop-filter:blur(24px)}
+  .ff-industry-panel-header{font-family:var(--fontDisplay);font-size:.6rem;letter-spacing:.16em;color:var(--accent);margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid rgba(255,255,255,.07)}
+  .ff-industry-panel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.45rem}
+  .ff-industry-panel-item{display:flex;align-items:center;gap:.55rem;padding:.55rem .7rem;border-radius:4px;border:1px solid transparent;background:rgba(255,255,255,.03);color:rgba(255,255,255,.72);cursor:pointer;text-align:left;transition:all .15s}
+  .ff-industry-panel-item:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.1);color:#fff}
+  .ff-industry-panel-icon{font-size:1.15rem;flex-shrink:0;width:24px;text-align:center}
+  .ff-industry-panel-name{font-family:var(--fontDisplay);font-size:.65rem;font-weight:600;letter-spacing:.05em;line-height:1.2}
+  .ff-industry-panel-desc{font-size:.56rem;color:rgba(255,255,255,.32);margin-top:2px;line-height:1.35}
+  .ff-industry-panel-skeleton{height:52px;border-radius:4px;background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+  .ff-industry-panel-empty{font-family:var(--fontMono);font-size:.62rem;color:var(--muted);text-align:center;padding:1.5rem 0}
 
   .ff-nav-actions{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
   .ff-icon-btn{width:34px;height:34px;border-radius:4px;background:transparent;border:1px solid var(--border);color:rgba(255,255,255,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;transition:all .2s;position:relative}

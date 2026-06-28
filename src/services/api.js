@@ -1,6 +1,6 @@
 /**
  * BASE API CLIENT  — FoxFury Backend
- * Base URL: http://localhost:3000/api
+ * Base URL: http://localhost:5000/api
  *
  * Handles:
  *  - JWT Bearer token attachment on every request
@@ -9,7 +9,7 @@
  *  - Throws structured { message, status } — never silent fallbacks here
  */
 
-export const BASE_URL = "http://localhost:3000/api";
+export const BASE_URL = "http://localhost:3000/api/v1";
 
 // ── Token storage (sessionStorage — cleared on tab close) ─────
 export const TokenStore = {
@@ -37,7 +37,7 @@ async function request(path, options = {}, retry = true) {
   } catch {
     // Network error — server down, no internet, CORS preflight failed
     throw {
-      message: "Cannot reach the server. Make sure the FoxFury backend is running on localhost:3000.",
+      message: "Cannot reach the server. Make sure the FoxFury backend is running on localhost:5000.",
       status: 0,
     };
   }
