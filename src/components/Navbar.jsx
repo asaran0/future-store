@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useStore } from "../store/StoreContext";
 import { api } from "../services/api";
 import { NAV } from "../data/foxfury";
 
 const THEME_DOTS = { black:"#1a1a2e", dark:"#4f46e5", cyber:"#00ffc8", light:"#ccccdd" };
 
-/* slug → icon map (API has no icon field) */
+/* slug → icon map */
 const SLUG_ICON = {
   "drones":          "🚁",
   "fire-rescue-ems": "🔥",
@@ -16,84 +17,82 @@ const SLUG_ICON = {
   "military":        "⚔",
 };
 
-/* ── Shop-by-Industry mega-panel (3×3 grid, API-driven) ────── */
-function IndustryPanel({ onNavigate, onClose }) {
+/* ── Shop-by-Industry mega-panel ───────────────────────────── */
+function IndustryPanel({ onClose }) {
+  const { state, dispatch } = useStore();
+  const navigate = useNavigate();
   const [industries, setIndustries] = useState([]);
   const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
+    // Use store data if available, avoid extra network call
+    if (state.industries?.data?.length) {
+      setIndustries(state.industries.data.filter(i => i.isActive !== false));
+      setLoading(false);
+      return;
+    }
     let alive = true;
     api.get("/industry")
       .then(res => {
         if (!alive) return;
-        // API returns { success: true, data: [...] }
         const list = Array.isArray(res) ? res : (res?.data ?? []);
         setIndustries(list.filter(i => i.isActive !== false));
       })
-      .catch(() => {
-        if (alive) setIndustries([]);
-      })
+      .catch(() => { if (alive) setIndustries([]); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, []);
+  }, [state.industries?.data]);
 
-  // Build rows of 3
-  const rows = [];
-  for (let i = 0; i < industries.length; i += 3) {
-    rows.push(industries.slice(i, i + 3));
-  }
+  const handleClick = (ind) => {
+    dispatch({ type:"SET_FILTER", payload:{ industryId: ind.id } });
+    navigate("/shop");
+    onClose();
+  };
 
   return (
     <div className="ff-industry-panel">
       <div className="ff-industry-panel-inner">
-      <div className="ff-industry-panel-header">INDUSTRIES WE SUPPORT</div>
-
-      {loading && (
-        <div className="ff-industry-panel-grid">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="ff-industry-panel-skeleton" />
-          ))}
-        </div>
-      )}
-
-      {!loading && industries.length === 0 && (
-        <div className="ff-industry-panel-empty">No industries found</div>
-      )}
-
-      {!loading && industries.length > 0 && (
-        <div className="ff-industry-panel-grid">
-          {industries.map(ind => (
-            <button
-              key={ind.id}
-              className="ff-industry-panel-item"
-              onClick={() => { onNavigate("shop", ind.id); onClose(); }}
-            >
-              <span className="ff-industry-panel-icon">
-                {SLUG_ICON[ind.slug] || "⬡"}
-              </span>
-              <div className="ff-industry-panel-text">
-                <div className="ff-industry-panel-name">{ind.name}</div>
-                {ind.description && (
-                  <div className="ff-industry-panel-desc">{ind.description}</div>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
+        <div className="ff-industry-panel-header">INDUSTRIES WE SUPPORT</div>
+        {loading && (
+          <div className="ff-industry-panel-grid">
+            {[...Array(6)].map((_, i) => <div key={i} className="ff-industry-panel-skeleton" />)}
+          </div>
+        )}
+        {!loading && industries.length === 0 && (
+          <div className="ff-industry-panel-empty">No industries found</div>
+        )}
+        {!loading && industries.length > 0 && (
+          <div className="ff-industry-panel-grid">
+            {industries.map(ind => (
+              <button key={ind.id} className="ff-industry-panel-item" onClick={() => handleClick(ind)}>
+                <span className="ff-industry-panel-icon">{SLUG_ICON[ind.slug] || "⬡"}</span>
+                <div className="ff-industry-panel-text">
+                  <div className="ff-industry-panel-name">{ind.name}</div>
+                  {ind.description && <div className="ff-industry-panel-desc">{ind.description}</div>}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* ── Generic dropdown for non-industry nav items ────────────── */
-function GenericDropdown({ items, onNavigate, onClose }) {
+/* ── Generic dropdown ──────────────────────────────────────── */
+function GenericDropdown({ items, onClose }) {
+  const navigate = useNavigate();
+  const { dispatch } = useStore();
   return (
     <div className="ff-dropdown">
       <div className="ff-dropdown-inner">
         {items.map((item) => (
           <button key={item.id} className="ff-dropdown-item"
-            onClick={() => { onNavigate("shop", item.id); onClose(); }}>
+            onClick={() => {
+              dispatch({ type:"SET_FILTER", payload:{ industryId: item.id } });
+              navigate("/shop");
+              onClose();
+            }}>
             <span className="ff-dropdown-icon">{item.icon}</span>
             <div>
               <div className="ff-dropdown-label">{item.label}</div>
@@ -106,18 +105,16 @@ function GenericDropdown({ items, onNavigate, onClose }) {
   );
 }
 
-/* ── Single nav item — receives activeId + setActiveId ──────── */
-function NavItem({ item, activePage, onNavigate, activeId, setActiveId }) {
-  const ref = useRef(null);
-  const isOpen = activeId === item.id;
+/* ── Single nav item ───────────────────────────────────────── */
+function NavItem({ item, activeId, setActiveId }) {
+  const ref     = useRef(null);
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const isOpen    = activeId === item.id;
+  const isActive  = location.pathname === `/${item.link}` || (item.link === "home" && location.pathname === "/");
 
-  // Close on outside click
   useEffect(() => {
-    const h = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setActiveId(null);
-      }
-    };
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setActiveId(null); };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, [setActiveId]);
@@ -125,102 +122,69 @@ function NavItem({ item, activePage, onNavigate, activeId, setActiveId }) {
   if (!item.dropdown) {
     return (
       <button
-        className={`ff-nav-link ${activePage === item.link ? "active" : ""}`}
-        onClick={() => { setActiveId(null); onNavigate(item.link); }}
+        className={`ff-nav-link ${isActive ? "active" : ""}`}
+        onClick={() => { setActiveId(null); navigate(item.link === "home" ? "/" : `/${item.link}`); }}
       >
         {item.label}
       </button>
     );
   }
 
-  const openMenu  = () => setActiveId(item.id);
-  const closeMenu = () => setActiveId(null);
-  const toggleMenu = () => setActiveId(isOpen ? null : item.id);
-
   return (
-    <div
-      className="ff-nav-item-wrap"
-      ref={ref}
-      onMouseEnter={openMenu}
-      onMouseLeave={closeMenu}
+    <div className="ff-nav-item-wrap" ref={ref}
+      onMouseEnter={() => setActiveId(item.id)}
+      onMouseLeave={() => setActiveId(null)}
     >
-      <button
-        className={`ff-nav-link ${isOpen ? "open" : ""}`}
-        onClick={toggleMenu}
-      >
+      <button className={`ff-nav-link ${isOpen ? "open" : ""}`}
+        onClick={() => setActiveId(isOpen ? null : item.id)}>
         {item.label} <span className="ff-nav-caret">{isOpen ? "▲" : "▼"}</span>
       </button>
-
       {isOpen && (
         item.id === "shop-by-industry"
-          ? <IndustryPanel
-              onNavigate={onNavigate}
-              onClose={closeMenu}
-            />
-          : <GenericDropdown
-              items={item.dropdown}
-              onNavigate={onNavigate}
-              onClose={closeMenu}
-            />
+          ? <IndustryPanel onClose={() => setActiveId(null)} />
+          : <GenericDropdown items={item.dropdown} onClose={() => setActiveId(null)} />
       )}
     </div>
   );
 }
 
 /* ── Navbar ─────────────────────────────────────────────────── */
-export default function Navbar({ page, setPage }) {
+export default function Navbar() {
   const { state, dispatch, actions } = useStore();
-  const [activeId, setActiveId]       = useState(null); // ← single source of truth
-  const cartCount = state.cart.reduce((s, i) => s + i.qty, 0);
-  const isAdmin   = page.startsWith("admin");
+  const navigate   = useNavigate();
+  const location   = useLocation();
+  const [activeId, setActiveId] = useState(null);
 
-  const handleNav = (targetPage, filter) => {
-    if (filter) {
-      dispatch({ type: "SET_FILTER", payload: { industryId: filter } });
-      setPage("shop");
-    } else {
-      setPage(targetPage);
-    }
-    setActiveId(null);
-  };
+  const cartCount = state.cart.reduce((s, i) => s + i.qty, 0);
+  const isAdmin   = location.pathname.startsWith("/admin");
 
   return (
     <>
-      {/* Slim announcement bar */}
       <div className="ff-ann-bar">
         🚚&nbsp;<strong>Free Shipping On Orders Over $99</strong>
         &nbsp;·&nbsp;In-Stock Orders Ship Within 24 Hours
-        <span className="ff-ann-link" onClick={() => setPage("shop")}>&nbsp;Shop Now →</span>
+        <span className="ff-ann-link" onClick={() => navigate("/shop")}>&nbsp;Shop Now →</span>
       </div>
 
-      {/* Main nav */}
       <nav className="ff-nav">
-        <div className="ff-logo" onClick={() => setPage("home")}>
+        <div className="ff-logo" onClick={() => navigate("/")}>
           <span className="ff-logo-fox">FOX</span><span className="ff-logo-fury">FURY</span>
         </div>
 
         {!isAdmin ? (
           <div className="ff-nav-links">
             {NAV.map((item) => (
-              <NavItem
-                key={item.id}
-                item={item}
-                activePage={page}
-                onNavigate={handleNav}
-                activeId={activeId}
-                setActiveId={setActiveId}
-              />
+              <NavItem key={item.id} item={item} activeId={activeId} setActiveId={setActiveId} />
             ))}
           </div>
         ) : (
           <div className="ff-nav-links">
-            <button className="ff-nav-link" onClick={() => setPage("home")}>← Store</button>
+            <button className="ff-nav-link" onClick={() => navigate("/")}>← Store</button>
             <span style={{ color:"var(--muted)", fontSize:".55rem" }}>|</span>
             <span className="ff-nav-link active">Admin Panel</span>
           </div>
         )}
 
-        {/* Right actions */}
         <div className="ff-nav-actions">
           <div className="ff-theme-selector">
             {Object.entries(THEME_DOTS).map(([t, c]) => (
@@ -231,12 +195,12 @@ export default function Navbar({ page, setPage }) {
 
           {state.user && (
             <button className={`ff-icon-btn ${isAdmin ? "active" : ""}`}
-              onClick={() => setPage(isAdmin ? "home" : "admin")} title="Admin">⚙</button>
+              onClick={() => navigate(isAdmin ? "/" : "/admin")} title="Admin">⚙</button>
           )}
 
           {!isAdmin && (
             <>
-              <button className="ff-icon-btn" onClick={() => setPage("wishlist")} title="Wishlist">
+              <button className="ff-icon-btn" onClick={() => navigate("/wishlist")} title="Wishlist">
                 ♡{state.wishlist.length > 0 && <span className="ff-nav-badge">{state.wishlist.length}</span>}
               </button>
               <button className="ff-icon-btn" onClick={() => dispatch({ type:"TOGGLE_CART" })} title="Cart">
@@ -253,10 +217,8 @@ export default function Navbar({ page, setPage }) {
             </div>
           ) : (
             <>
-              <button className="ff-btn-ghost-nav"
-                onClick={() => dispatch({ type:"OPEN_AUTH_MODAL", payload:"login" })}>SIGN IN</button>
-              <button className="ff-btn-outline-nav"
-                onClick={() => dispatch({ type:"OPEN_AUTH_MODAL", payload:"register" })}>REGISTER</button>
+              <button className="ff-btn-ghost-nav" onClick={() => dispatch({ type:"OPEN_AUTH_MODAL", payload:"login" })}>SIGN IN</button>
+              <button className="ff-btn-outline-nav" onClick={() => dispatch({ type:"OPEN_AUTH_MODAL", payload:"register" })}>REGISTER</button>
             </>
           )}
         </div>

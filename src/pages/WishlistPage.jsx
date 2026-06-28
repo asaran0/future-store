@@ -1,6 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/StoreContext";
 import ProductCard from "../components/ProductCard";
-export default function WishlistPage({ setPage }) {
+export default function WishlistPage() {
+  const navigate = useNavigate();
   const { state, dispatch } = useStore();
   return (
     <div className="ff-page">
@@ -14,7 +16,7 @@ export default function WishlistPage({ setPage }) {
             <div className="ff-empty-icon">♡</div>
             <div className="ff-empty-title">NO SAVED ITEMS</div>
             <div className="ff-empty-sub">Browse products and save ones you love</div>
-            <button className="ff-btn-primary" style={{ marginTop:"1.5rem" }} onClick={() => setPage("shop")}>BROWSE PRODUCTS →</button>
+            <button className="ff-btn-primary" style={{ marginTop:"1.5rem" }} onClick={() => navigate("/shop")}>BROWSE PRODUCTS →</button>
           </div>
         ) : (
           <>
@@ -23,7 +25,7 @@ export default function WishlistPage({ setPage }) {
                 onClick={() => state.wishlist.forEach((p) => dispatch({ type:"ADD_TO_CART", payload:{ id:p.id, name:p.name, price:p.price||p.ProductVariants?.[0]?.msrp||0, image:p.image||"📦", sku:p.sku } }))}>
                 ADD ALL TO CART
               </button>
-              <button className="ff-btn-sm" onClick={() => setPage("shop")}>CONTINUE SHOPPING</button>
+              <button className="ff-btn-sm" onClick={() => navigate("/shop")}>CONTINUE SHOPPING</button>
             </div>
             <div className="ff-grid">{state.wishlist.map((p) => <ProductCard key={p.id} product={p} />)}</div>
           </>

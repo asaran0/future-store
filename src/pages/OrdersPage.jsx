@@ -1,5 +1,7 @@
+import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/StoreContext";
-export default function OrdersPage({ setPage }) {
+export default function OrdersPage() {
+  const navigate = useNavigate();
   const { state, dispatch } = useStore();
   if (!state.user) return (
     <div className="ff-page">
@@ -22,7 +24,7 @@ export default function OrdersPage({ setPage }) {
           <div className="ff-empty-state" style={{ padding:"5rem 2rem" }}>
             <div className="ff-empty-icon">📦</div>
             <div className="ff-empty-title">NO ORDERS YET</div>
-            <button className="ff-btn-primary" style={{ marginTop:"1.5rem" }} onClick={() => setPage("shop")}>START SHOPPING →</button>
+            <button className="ff-btn-primary" style={{ marginTop:"1.5rem" }} onClick={() => navigate("/shop")}>START SHOPPING →</button>
           </div>
         ) : state.orders.slice().reverse().map((order) => (
           <div key={order.id} className="ff-order-card">

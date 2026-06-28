@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useStore } from "../store/StoreContext";
 import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
 import { getProductsByIndustry } from "../services/productService";
@@ -13,6 +14,23 @@ const SORT_OPTIONS = [
 export default function ShopPage() {
   const { state, actions, dispatch } = useStore();
   const { products, industries, categories, filters } = state;
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  /* Sync URL → store filter on mount/URL change */
+  useEffect(() => {
+    const industry = searchParams.get("industry");
+    if (industry && industry !== filters.industryId) {
+      dispatch({ type:"SET_FILTER", payload:{ industryId: industry } });
+    }
+  }, [searchParams]);
+
+  /* Sync store filter → URL */
+  useEffect(() => {
+    const params = {};
+    if (filters.industryId) params.industry = filters.industryId;
+    if (filters.search)     params.search   = filters.search;
+    setSearchParams(params, { replace: true });
+  }, [filters.industryId, filters.search]);
   const [industryProducts, setIndustryProducts] = useState(null);
   const [indLoading, setIndLoading] = useState(false);
   const [indError, setIndError]     = useState(null);

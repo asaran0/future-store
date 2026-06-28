@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/StoreContext";
 import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
 import { HERO_SLIDES, TESTIMONIALS, FEATURES } from "../data/foxfury";
 
 /* ── Hero ──────────────────────────────────────────────────── */
-function Hero({ setPage }) {
+function Hero() {
+  const navigate = useNavigate();
   const [slide, setSlide] = useState(0);
   const timer = useRef(null);
   useEffect(() => {
@@ -51,7 +53,7 @@ function Hero({ setPage }) {
           <p className="njey-para">{s.sub}</p>
         </div>
 
-        <button className="njey-cta" onClick={() => setPage("shop")}>{s.cta}</button>
+        <button className="njey-cta" onClick={() => navigate("/shop")}>{s.cta}</button>
       </div>
 
       {/* Slide dots */}
@@ -99,7 +101,8 @@ function ApiErrorState({ message, onRetry, label }) {
 }
 
 /* ── Industries — API only ─────────────────────────────────── */
-function Industries({ setPage }) {
+function Industries() {
+  const navigate = useNavigate();
   const { state, actions, dispatch } = useStore();
   const { industries } = state;
 
@@ -115,7 +118,7 @@ function Industries({ setPage }) {
           <div className="ff-section-eyebrow">APPLICATION-SPECIFIC SOLUTIONS</div>
           <div className="ff-section-heading">SHOP BY INDUSTRY</div>
         </div>
-        <button className="ff-see-all" onClick={() => setPage("shop")}>VIEW ALL →</button>
+        <button className="ff-see-all" onClick={() => navigate("/shop")}>VIEW ALL →</button>
       </div>
 
       {industries.loading && (
@@ -140,7 +143,7 @@ function Industries({ setPage }) {
         <div className="ff-industry-grid">
           {industries.data.map(ind => (
             <button key={ind.id} className="ff-industry-card"
-              onClick={() => { dispatch({ type:"SET_FILTER", payload:{ industryId:ind.id } }); setPage("shop"); }}>
+              onClick={() => { dispatch({ type:"SET_FILTER", payload:{ industryId:ind.id } }); navigate("/shop"); }}>
               <div className="ff-industry-icon">⬡</div>
               <div className="ff-industry-label">{ind.name}</div>
               <div className="ff-industry-desc">{ind.description || "Industry-specific FoxFury lighting solutions."}</div>
@@ -154,7 +157,8 @@ function Industries({ setPage }) {
 }
 
 /* ── Featured Products — API only ──────────────────────────── */
-function FeaturedProducts({ setPage }) {
+function FeaturedProducts() {
+  const navigate = useNavigate();
   const { state, actions } = useStore();
   const { products } = state;
 
@@ -170,7 +174,7 @@ function FeaturedProducts({ setPage }) {
           <div className="ff-section-eyebrow">INDUSTRY LEADING TECHNOLOGY</div>
           <div className="ff-section-heading">FEATURED PRODUCTS</div>
         </div>
-        <button className="ff-see-all" onClick={() => setPage("shop")}>VIEW ALL →</button>
+        <button className="ff-see-all" onClick={() => navigate("/shop")}>VIEW ALL →</button>
       </div>
 
       {products.error && (
@@ -198,7 +202,8 @@ function FeaturedProducts({ setPage }) {
 }
 
 /* ── Nomad Banner ──────────────────────────────────────────── */
-function Banner({ setPage }) {
+function Banner() {
+  const navigate = useNavigate();
   return (
     <section className="ff-banner">
       <div className="ff-banner-glow" />
@@ -214,7 +219,7 @@ function Banner({ setPage }) {
             <span key={s} className="ff-banner-spec">✓ {s}</span>
           ))}
         </div>
-        <button className="njey-cta" onClick={() => setPage("shop")}>SHOP NOMAD LIGHTS</button>
+        <button className="njey-cta" onClick={() => navigate("/shop")}>SHOP NOMAD LIGHTS</button>
       </div>
       <div className="ff-banner-visual">
         <div className="ff-banner-emoji">💡</div>
@@ -274,7 +279,8 @@ function FeaturesStrip() {
 }
 
 /* ── Footer ────────────────────────────────────────────────── */
-function Footer({ setPage }) {
+function Footer() {
+  const navigate = useNavigate();
   const cols = [
     { title:"SHOP BY INDUSTRY", links:["Fire / EMS","Law Enforcement","Forensics","Military","Industrial","Drones"] },
     { title:"PRODUCTS",         links:["Scene Lights","Headlamps","Flashlights","Shield Lights","Area Lights","Drone Lights"] },
@@ -297,7 +303,7 @@ function Footer({ setPage }) {
           <div key={col.title}>
             <div className="ff-footer-col-title">{col.title}</div>
             {col.links.map(l => (
-              <button key={l} className="ff-footer-link" onClick={() => setPage("shop")}>{l}</button>
+              <button key={l} className="ff-footer-link" onClick={() => navigate("/shop")}>{l}</button>
             ))}
           </div>
         ))}
@@ -313,16 +319,16 @@ function Footer({ setPage }) {
 }
 
 /* ── Page ──────────────────────────────────────────────────── */
-export default function HomePage({ setPage }) {
+export default function HomePage() {
   return (
     <div className="ff-page">
-      <Hero setPage={setPage} />
+      <Hero />
       <FeaturesStrip />
-      <Industries setPage={setPage} />
-      <FeaturedProducts setPage={setPage} />
-      <Banner setPage={setPage} />
+      <Industries />
+      <FeaturedProducts />
+      <Banner />
       <Testimonials />
-      <Footer setPage={setPage} />
+      <Footer />
     </div>
   );
 }
